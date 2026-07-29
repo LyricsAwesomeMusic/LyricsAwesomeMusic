@@ -1,0 +1,2962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWESOME MUSIC</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA2hR66le0BdVOr3do08KG3AaX--LO2tSs",
+    authDomain: "lyricsawesomemusic.firebaseapp.com",
+    projectId: "lyricsawesomemusic",
+    storageBucket: "lyricsawesomemusic.firebasestorage.app",
+    messagingSenderId: "915906739263",
+    appId: "1:915906739263:web:9fa619c5860fd4c3114c8a",
+    measurementId: "G-52HRQMHTHC"
+  };
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    window.fbDB      = getFirestore(app);
+    window.fbStorage = getStorage(app);
+    window.fbAuth    = auth;
+    window.fbFns     = { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy, ref, uploadBytes, getDownloadURL, deleteObject, signInWithEmailAndPassword, signOut, sendPasswordResetEmail };
+    window._fbReady  = true;
+
+    // Listen to auth state — update UI when login/logout
+    onAuthStateChanged(auth, (user) => {
+      window.fbUser = user;
+      if(user){
+        console.log("🔐 Logged in as:", user.email);
+        window._fbAuthenticated = true;
+        // Update admin panel UI
+        const dot = document.getElementById('fb-dot');
+        const lbl = document.getElementById('fb-label');
+        if(dot){ dot.className='fb-dot ok'; }
+        if(lbl){ lbl.textContent='SECURE ✓'; lbl.style.color='#00c850'; }
+        const authBanner = document.getElementById('auth-banner');
+        if(authBanner){ authBanner.style.display='none'; }
+      } else {
+        window._fbAuthenticated = false;
+        console.log("🔓 Not logged in");
+      }
+    });
+
+    console.log("✅ Firebase + Auth initialized");
+  } catch(e) {
+    console.error("❌ Firebase init error:", e);
+    window._fbReady = false;
+  }
+</script>
+
+<style>
+:root{--c:#00f5ff;--m:#ff00aa;--o:#ff6a00;--dk:#03040a;--dk2:#080c18;--gl:rgba(0,245,255,0.05);--glb:rgba(0,245,255,0.15);}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--dk);color:#e0eeff;font-family:'Inter',sans-serif;overflow-x:hidden;cursor:none;}
+#cur{width:18px;height:18px;border:2px solid var(--c);border-radius:50%;position:fixed;pointer-events:none;z-index:99999;transition:transform .15s,background .2s;mix-blend-mode:screen;}
+#cdot{width:4px;height:4px;background:var(--c);border-radius:50%;position:fixed;pointer-events:none;z-index:99999;box-shadow:0 0 10px var(--c);}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:1000;}
+#ptcl{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.ptcl{position:absolute;border-radius:50%;animation:floatup linear infinite;opacity:0;}
+@keyframes floatup{0%{opacity:0;transform:translateY(100vh) scale(0);}10%{opacity:.6;}90%{opacity:.2;}100%{opacity:0;transform:translateY(-10vh) scale(1.5);}}
+.gbg{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.02;background-image:linear-gradient(var(--c) 1px,transparent 1px),linear-gradient(90deg,var(--c) 1px,transparent 1px);background-size:60px 60px;}
+
+/* FIREBASE STATUS BANNER */
+#fb-status{position:fixed;top:66px;left:0;right:0;z-index:800;padding:8px 20px;font-size:11px;font-family:'Orbitron',monospace;letter-spacing:2px;text-align:center;display:none;transition:all .3s;}
+#fb-status.ok{background:rgba(0,200,80,.15);border-bottom:1px solid rgba(0,200,80,.3);color:#00c850;display:block;}
+#fb-status.err{background:rgba(255,0,170,.12);border-bottom:1px solid rgba(255,0,170,.25);color:var(--m);display:block;}
+#fb-status.warn{background:rgba(255,106,0,.12);border-bottom:1px solid rgba(255,106,0,.25);color:var(--o);display:block;}
+
+/* SETUP OVERLAY */
+#setup-overlay{position:fixed;inset:0;background:rgba(3,4,10,.97);z-index:9500;display:none;align-items:center;justify-content:center;padding:20px;}
+#setup-overlay.show{display:flex;}
+.setup-box{background:var(--dk2);border:1px solid var(--glb);border-radius:16px;padding:40px;max-width:580px;width:100%;position:relative;}
+.setup-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--o),var(--c),transparent);}
+.setup-box h2{font-family:'Orbitron',monospace;font-size:20px;color:var(--o);margin-bottom:8px;text-align:center;}
+.setup-box .desc{font-size:12px;color:rgba(224,238,255,.45);text-align:center;margin-bottom:28px;line-height:1.8;}
+.setup-steps{display:flex;flex-direction:column;gap:14px;margin-bottom:24px;}
+.step{display:flex;gap:14px;align-items:flex-start;}
+.step-num{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--c),#0088aa);color:#000;font-weight:900;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.step-text{font-size:12px;color:rgba(224,238,255,.6);line-height:1.7;}
+.step-text a{color:var(--c);text-decoration:none;}
+.step-text a:hover{text-decoration:underline;}
+.setup-input{width:100%;background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.2);border-radius:8px;padding:12px 14px;color:#e0eeff;font-family:'Inter',sans-serif;font-size:13px;outline:none;margin-bottom:10px;}
+.setup-input:focus{border-color:var(--c);}
+.setup-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--c),#0088aa);color:#000;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;transition:all .3s;}
+.setup-btn:hover{box-shadow:0 0 25px rgba(0,245,255,.4);}
+.setup-skip{width:100%;padding:10px;background:transparent;color:rgba(224,238,255,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;cursor:pointer;font-size:12px;margin-top:8px;transition:all .3s;}
+.setup-skip:hover{color:rgba(224,238,255,.6);}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:900;padding:0 16px;min-height:66px;height:auto;display:flex;align-items:center;justify-content:space-between;background:rgba(3,4,10,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--glb);flex-wrap:wrap;gap:6px;padding-top:8px;padding-bottom:8px;}
+.logo{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;color:var(--c);text-shadow:0 0 20px var(--c);letter-spacing:2px;text-decoration:none;flex-shrink:0;}
+.nav-r{display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+.nav-r a{color:rgba(224,238,255,.6);text-decoration:none;font-size:11px;padding:5px 9px;border-radius:4px;border:1px solid transparent;transition:all .3s;font-weight:600;white-space:nowrap;}
+.nav-r a:hover{color:var(--c);border-color:var(--glb);background:var(--gl);}
+.lw{position:relative;}
+#lbtn{background:rgba(0,245,255,.07);border:1px solid var(--glb)!important;color:var(--c)!important;font-size:11px!important;cursor:pointer;display:flex;align-items:center;gap:5px;}
+.ldd{position:absolute;top:calc(100% + 8px);right:0;background:var(--dk2);border:1px solid var(--glb);border-radius:8px;min-width:170px;overflow:hidden;display:none;z-index:1000;box-shadow:0 20px 40px rgba(0,0,0,.6);}
+.ldd.open{display:block;}
+.li{padding:9px 14px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:9px;transition:background .2s;color:#e0eeff;}
+.li:hover{background:var(--gl);color:var(--c);}
+.li.act{color:var(--c);background:rgba(0,245,255,.07);}
+#abtn{background:linear-gradient(135deg,rgba(255,0,170,.15),rgba(0,245,255,.1));border:1px solid var(--m)!important;color:var(--m)!important;font-size:11px!important;letter-spacing:1px;}
+
+#hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding-top:80px;}
+.hbg{position:absolute;inset:0;}
+.hbg img{width:100%;height:100%;object-fit:cover;object-position:center top;filter:brightness(.28) saturate(1.5);}
+.hov{position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(0,245,255,.07),transparent),radial-gradient(ellipse 40% 80% at 80% 50%,rgba(255,0,170,.05),transparent),linear-gradient(to bottom,transparent 50%,var(--dk) 100%);}
+.hc{position:relative;z-index:10;text-align:center;padding:40px 20px;}
+.av{width:185px;height:185px;border-radius:50%;object-fit:cover;border:3px solid var(--c);box-shadow:0 0 40px rgba(0,245,255,.5),0 0 80px rgba(0,245,255,.2);animation:pg 3s ease-in-out infinite;margin:0 auto 26px;display:block;}
+@keyframes pg{0%,100%{box-shadow:0 0 40px rgba(0,245,255,.5),0 0 80px rgba(0,245,255,.2);}50%{box-shadow:0 0 60px rgba(0,245,255,.8),0 0 120px rgba(0,245,255,.4),0 0 160px rgba(255,0,170,.2);}}
+.ht{font-family:'Orbitron',monospace;font-size:clamp(32px,7vw,76px);font-weight:900;line-height:1;margin-bottom:10px;background:linear-gradient(135deg,#fff 0%,var(--c) 50%,var(--m) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 30px rgba(0,245,255,.5));animation:tg 4s ease-in-out infinite;}
+@keyframes tg{0%,100%{filter:drop-shadow(0 0 20px rgba(0,245,255,.4));}50%{filter:drop-shadow(0 0 40px rgba(0,245,255,.8)) drop-shadow(0 0 60px rgba(255,0,170,.3));}}
+.gl{position:relative;}
+.gl::before,.gl::after{content:attr(data-text);position:absolute;top:0;left:0;width:100%;background:transparent;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.gl::before{background:linear-gradient(135deg,#f00,#f0a);clip-path:polygon(0 0,100% 0,100% 45%,0 45%);animation:g1 5s infinite;opacity:.2;}
+.gl::after{background:linear-gradient(135deg,#0ff,#0af);clip-path:polygon(0 55%,100% 55%,100% 100%,0 100%);animation:g2 5s infinite;opacity:.2;}
+@keyframes g1{0%,94%,100%{transform:none;}95%{transform:translate(-3px,0);}97%{transform:translate(3px,1px);}}
+@keyframes g2{0%,94%,100%{transform:none;}95%{transform:translate(3px,0);}97%{transform:translate(-3px,-1px);}}
+.hs{font-size:clamp(11px,2vw,15px);color:rgba(224,238,255,.5);letter-spacing:5px;text-transform:uppercase;margin-bottom:14px;font-family:'Orbitron',monospace;}
+.htag{font-size:14px;color:var(--c);opacity:.75;margin-bottom:36px;font-weight:300;}
+.ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.bp{padding:12px 32px;background:linear-gradient(135deg,var(--c),#0088aa);color:#000;font-weight:700;border:none;border-radius:4px;cursor:pointer;font-size:13px;text-decoration:none;display:inline-block;transition:all .3s;box-shadow:0 0 20px rgba(0,245,255,.4);}
+.bp:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,245,255,.6);}
+.bg{padding:12px 32px;background:transparent;color:var(--c);font-weight:600;border:1px solid var(--c);border-radius:4px;cursor:pointer;font-size:13px;text-decoration:none;display:inline-block;transition:all .3s;}
+.bg:hover{background:rgba(0,245,255,.1);box-shadow:0 0 20px rgba(0,245,255,.3);transform:translateY(-3px);}
+.si{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;animation:bounce 2s infinite;z-index:10;}
+.si span{font-size:9px;color:rgba(0,245,255,.4);letter-spacing:3px;font-family:'Orbitron',monospace;}
+.sl{width:1px;height:46px;background:linear-gradient(to bottom,var(--c),transparent);}
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(8px);}}
+
+section{position:relative;z-index:10;padding:85px 0;}
+.sh{text-align:center;margin-bottom:50px;padding:0 20px;}
+.st{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:6px;color:var(--c);text-transform:uppercase;margin-bottom:9px;opacity:.6;}
+.stl{font-family:'Orbitron',monospace;font-size:clamp(24px,4vw,44px);font-weight:900;color:#fff;text-shadow:0 0 30px rgba(0,245,255,.2);}
+.stl span{color:var(--c);}
+.sl2{width:80px;height:2px;background:linear-gradient(90deg,transparent,var(--c),var(--m),transparent);margin:16px auto 0;animation:lg 2s ease-in-out infinite;}
+@keyframes lg{0%,100%{opacity:.5;width:80px;}50%{opacity:1;width:120px;}}
+.con{max-width:1200px;margin:0 auto;padding:0 28px;}
+
+/* PLAYER */
+#music{background:var(--dk2);}
+.pw{background:var(--gl);border:1px solid var(--glb);border-radius:16px;padding:28px;max-width:800px;margin:0 auto;}
+.playlist{list-style:none;margin-bottom:20px;max-height:300px;overflow-y:auto;}
+.playlist::-webkit-scrollbar{width:4px;}
+.playlist::-webkit-scrollbar-thumb{background:var(--c);border-radius:2px;}
+.pli{display:flex;align-items:center;gap:14px;padding:11px 13px;border-radius:8px;cursor:pointer;transition:all .3s;border:1px solid transparent;margin-bottom:5px;}
+.pli:hover{background:rgba(0,245,255,.08);border-color:var(--glb);}
+.pli.active{background:rgba(0,245,255,.12);border-color:var(--c);}
+.pln{font-family:'Orbitron',monospace;font-size:11px;color:rgba(0,245,255,.4);width:22px;text-align:center;}
+.pli.active .pln{display:none;}
+.pl-bars{display:none;align-items:flex-end;gap:2px;height:16px;width:22px;}
+.pli.active .pl-bars{display:flex;}
+.bar{width:3px;background:var(--c);border-radius:1px;animation:bars .8s ease-in-out infinite alternate;}
+.bar:nth-child(2){animation-delay:.2s;}.bar:nth-child(3){animation-delay:.4s;}
+@keyframes bars{0%{height:4px;}100%{height:14px;}}
+.plc{width:42px;height:42px;border-radius:6px;object-fit:cover;border:1px solid var(--glb);flex-shrink:0;}
+.pli-info{flex:1;min-width:0;}
+.pli-t{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pli-a{font-size:11px;color:rgba(224,238,255,.35);margin-top:2px;}
+.pctrl{background:rgba(0,0,0,.3);border-radius:12px;padding:18px;}
+.np{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.npc{width:58px;height:58px;border-radius:8px;object-fit:cover;border:2px solid var(--c);box-shadow:0 0 15px rgba(0,245,255,.3);flex-shrink:0;}
+.npt{font-size:14px;font-weight:700;color:#fff;}
+.npa{font-size:11px;color:rgba(0,245,255,.6);margin-top:3px;}
+.pb{width:100%;height:4px;background:rgba(255,255,255,.1);border-radius:2px;cursor:pointer;}
+.pf{height:100%;background:linear-gradient(90deg,var(--c),var(--m));border-radius:2px;transition:width .1s;width:0%;}
+.tr{display:flex;justify-content:space-between;margin-top:4px;}
+.tr span{font-family:'Orbitron',monospace;font-size:10px;color:rgba(224,238,255,.3);}
+.cb{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0;}
+.cb button{background:none;border:none;cursor:pointer;color:rgba(224,238,255,.5);font-size:17px;transition:all .3s;padding:7px;}
+.cb button:hover{color:var(--c);}
+.pb2{width:50px;height:50px;background:linear-gradient(135deg,var(--c),#0088aa);border:none;border-radius:50%;cursor:pointer;font-size:19px;color:#000;display:flex;align-items:center;justify-content:center;transition:all .3s;box-shadow:0 0 20px rgba(0,245,255,.4);}
+.pb2:hover{transform:scale(1.08);box-shadow:0 0 30px rgba(0,245,255,.6);}
+.vr{display:flex;align-items:center;gap:10px;}
+.vr span{font-size:13px;color:rgba(224,238,255,.35);}
+.vs{flex:1;height:3px;-webkit-appearance:none;background:rgba(255,255,255,.1);border-radius:2px;outline:none;cursor:pointer;}
+.vs::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--c);cursor:pointer;}
+#vm-vol::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#ff4444;cursor:pointer;box-shadow:0 0 6px rgba(255,0,0,.5);}
+@keyframes vmspin{to{transform:rotate(360deg);}}
+.epl{text-align:center;padding:36px 20px;color:rgba(224,238,255,.25);font-size:13px;}
+.epl div{font-size:30px;margin-bottom:8px;}
+
+/* LOADING SPINNER */
+.spin{width:20px;height:20px;border:2px solid rgba(0,245,255,.2);border-top-color:var(--c);border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* COVERS */
+#covers{background:var(--dk);}
+.mq{overflow:hidden;padding:16px 0;position:relative;}
+.mq::before,.mq::after{content:'';position:absolute;top:0;bottom:0;width:130px;z-index:10;pointer-events:none;}
+.mq::before{left:0;background:linear-gradient(to right,var(--dk),transparent);}
+.mq::after{right:0;background:linear-gradient(to left,var(--dk),transparent);}
+.mt{display:flex;gap:20px;animation:mq 35s linear infinite;width:max-content;}
+.mt:hover{animation-play-state:paused;}
+@keyframes mq{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.cc{flex-shrink:0;width:200px;background:var(--gl);border:1px solid var(--glb);border-radius:8px;overflow:hidden;cursor:pointer;transition:all .4s;position:relative;}
+.cc:hover{transform:translateY(-10px) scale(1.03);border-color:var(--c);box-shadow:0 20px 40px rgba(0,245,255,.2);}
+.cc img{width:100%;aspect-ratio:1;object-fit:cover;display:block;transition:filter .3s;}
+.cc:hover img{filter:brightness(.6) saturate(1.6);}
+.cplay{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%) scale(0);width:46px;height:46px;background:var(--c);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .3s;color:#000;font-size:17px;font-weight:bold;}
+.cc:hover .cplay{transform:translate(-50%,-60%) scale(1);}
+.ci{padding:12px;}
+.ci h4{font-size:12px;font-weight:600;color:#fff;margin-bottom:3px;}
+.ci p{font-size:10px;color:rgba(224,238,255,.35);font-family:'Orbitron',monospace;letter-spacing:1px;}
+
+/* NFT */
+#nft{background:var(--dk2);}
+.ng{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;}
+.nc{background:var(--gl);border:1px solid var(--glb);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .4s;position:relative;}
+.nc:hover{transform:translateY(-8px);border-color:var(--m);box-shadow:0 20px 60px rgba(255,0,170,.2);}
+.nc .iw{position:relative;overflow:hidden;aspect-ratio:4/3;}
+.nc img{width:100%;height:100%;object-fit:cover;transition:transform .6s;}
+.nc:hover img{transform:scale(1.08);}
+.nov{position:absolute;inset:0;background:linear-gradient(to top,rgba(3,4,10,.9),transparent 60%);opacity:0;transition:opacity .3s;display:flex;align-items:flex-end;padding:16px;}
+.nc:hover .nov{opacity:1;}
+.novt{font-size:10px;color:var(--m);font-family:'Orbitron',monospace;letter-spacing:2px;}
+.nb{position:absolute;top:10px;left:10px;background:linear-gradient(135deg,var(--m),#880055);color:#fff;font-size:8px;padding:3px 9px;border-radius:20px;letter-spacing:2px;font-family:'Orbitron',monospace;font-weight:700;}
+.ni{padding:14px;}
+.ni h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:7px;}
+.nm{display:flex;justify-content:space-between;align-items:center;}
+.npr{color:var(--c);font-family:'Orbitron',monospace;font-size:12px;font-weight:700;}
+.nbuy{background:linear-gradient(135deg,var(--m),#aa0077);color:#fff;border:none;padding:5px 14px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .3s;}
+.nbuy:hover{transform:scale(1.05);box-shadow:0 0 15px rgba(255,0,170,.5);}
+.empty-g{grid-column:1/-1;text-align:center;padding:60px 20px;color:rgba(224,238,255,.2);font-size:13px;}
+.empty-g div{font-size:38px;margin-bottom:10px;}
+
+/* CHANNELS */
+#channels{background:var(--dk);}
+.chg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
+.chc{background:var(--gl);border:1px solid var(--glb);border-radius:12px;padding:24px;text-align:center;text-decoration:none;transition:all .3s;display:block;position:relative;overflow:hidden;}
+.chc::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:conic-gradient(from 0deg,transparent,rgba(0,245,255,.04),transparent 60%);animation:rbg 6s linear infinite;opacity:0;transition:opacity .3s;}
+.chc:hover::before{opacity:1;}
+@keyframes rbg{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+.chc:hover{transform:translateY(-5px);border-color:var(--c);box-shadow:0 15px 40px rgba(0,245,255,.1);}
+.chi{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:24px;position:relative;z-index:1;}
+.yt{background:linear-gradient(135deg,#f00,#880000);box-shadow:0 0 20px rgba(255,0,0,.4);}
+.sc{background:linear-gradient(135deg,#f50,#aa2200);box-shadow:0 0 20px rgba(255,85,0,.4);}
+.sp{background:linear-gradient(135deg,#1db954,#0d7a36);box-shadow:0 0 20px rgba(29,185,84,.4);}
+.ig{background:linear-gradient(135deg,#e1306c,#833ab4);box-shadow:0 0 20px rgba(225,48,108,.4);}
+.tt{background:linear-gradient(135deg,#010101,#f05);box-shadow:0 0 20px rgba(255,0,80,.4);}
+.tw{background:linear-gradient(135deg,#1da1f2,#0066aa);box-shadow:0 0 20px rgba(29,161,242,.4);}
+.fb{background:linear-gradient(135deg,#1877f2,#0d5fd6);box-shadow:0 0 20px rgba(24,119,242,.4);}
+.wa{background:linear-gradient(135deg,#25d366,#128c7e);box-shadow:0 0 20px rgba(37,211,102,.4);}
+.tg{background:linear-gradient(135deg,#0088cc,#005f8e);box-shadow:0 0 20px rgba(0,136,204,.4);}
+.other{background:linear-gradient(135deg,#555,#333);box-shadow:0 0 20px rgba(100,100,100,.3);}
+.chc h4{font-size:14px;font-weight:700;color:#fff;margin-bottom:4px;position:relative;z-index:1;}
+.chc p{font-size:11px;color:rgba(224,238,255,.35);position:relative;z-index:1;}
+.cha{margin-top:11px;color:var(--c);font-size:14px;transition:transform .3s;position:relative;z-index:1;}
+.chc:hover .cha{transform:translateX(4px);}
+
+/* CONTACT */
+#contact{background:var(--dk2);}
+.ctw{max-width:560px;margin:0 auto;}
+.ctc{background:var(--gl);border:1px solid var(--glb);border-radius:16px;padding:42px 36px;position:relative;overflow:hidden;}
+.ctc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--c),var(--m),transparent);}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:10px;color:var(--c);letter-spacing:2px;margin-bottom:6px;font-family:'Orbitron',monospace;text-transform:uppercase;}
+.fg input,.fg textarea{width:100%;background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:12px 14px;color:#e0eeff;font-family:'Inter',sans-serif;font-size:13px;transition:border-color .3s;outline:none;resize:vertical;}
+.fg input:focus,.fg textarea:focus{border-color:var(--c);}
+.fg textarea{min-height:100px;}
+.sb{width:100%;padding:14px;background:linear-gradient(135deg,var(--c),#0088aa);color:#000;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:14px;transition:all .3s;}
+.sb:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,245,255,.4);}
+.cte{text-align:center;margin-top:18px;}
+.cte a{color:rgba(224,238,255,.35);text-decoration:none;font-size:12px;transition:color .3s;}
+.cte a:hover{color:var(--c);}
+
+footer{background:var(--dk);border-top:1px solid var(--glb);padding:32px 28px;text-align:center;position:relative;z-index:10;}
+footer .fl{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;color:var(--c);text-shadow:0 0 20px var(--c);margin-bottom:7px;}
+footer p{font-size:10px;color:rgba(224,238,255,.2);letter-spacing:2px;}
+
+/* MODALS */
+.mbk{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);z-index:9000;display:none;align-items:center;justify-content:center;}
+.mbk.on{display:flex;}
+.modal{background:var(--dk2);border:1px solid var(--glb);border-radius:16px;padding:36px;width:90%;max-width:380px;position:relative;}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--m),var(--c),transparent);}
+.modal h3{font-family:'Orbitron',monospace;color:var(--m);font-size:18px;margin-bottom:5px;text-align:center;}
+.msub{color:rgba(224,238,255,.3);font-size:10px;text-align:center;margin-bottom:20px;letter-spacing:2px;}
+.mc{position:absolute;top:12px;right:14px;background:none;border:none;color:rgba(224,238,255,.3);font-size:18px;cursor:pointer;}
+.mc:hover{color:var(--m);}
+.merr{color:var(--m);font-size:11px;text-align:center;margin-top:9px;display:none;}
+
+/* ADMIN */
+#ap{position:fixed;inset:0;background:var(--dk);z-index:8000;display:none;overflow-y:auto;}
+#ap.on{display:block;}
+.ap-nav{position:sticky;top:0;background:rgba(3,4,10,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--glb);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;z-index:100;}
+.ap-nav h2{font-family:'Orbitron',monospace;font-size:16px;color:var(--m);letter-spacing:2px;}
+.fb-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;background:#555;}
+.fb-dot.ok{background:#00c850;box-shadow:0 0 8px #00c850;}
+.fb-dot.err{background:var(--m);box-shadow:0 0 8px var(--m);}
+.ap-tabs{display:flex;gap:4px;padding:16px 24px 0;overflow-x:auto;}
+.ap-tab{padding:10px 18px;background:var(--gl);border:1px solid var(--glb);border-radius:8px 8px 0 0;cursor:pointer;font-size:11px;color:rgba(224,238,255,.45);font-family:'Orbitron',monospace;letter-spacing:1px;transition:all .3s;white-space:nowrap;}
+.ap-tab.act{background:rgba(0,245,255,.1);border-color:var(--c);color:var(--c);}
+.ap-body{padding:0 24px 40px;}
+.ap-pane{display:none;padding-top:22px;}
+.ap-pane.act{display:block;}
+.ap-card{background:var(--gl);border:1px solid var(--glb);border-radius:12px;padding:20px;margin-bottom:18px;}
+.ap-card h3{font-family:'Orbitron',monospace;font-size:11px;color:var(--c);margin-bottom:14px;letter-spacing:2px;}
+.ap-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px;margin-bottom:9px;}
+.ap-row input,.ap-row select{background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:9px 12px;color:#e0eeff;font-family:'Inter',sans-serif;font-size:12px;outline:none;transition:border-color .3s;width:100%;}
+.ap-row input:focus{border-color:var(--c);}
+.ap-add{padding:9px 20px;background:linear-gradient(135deg,rgba(0,245,255,.15),rgba(0,136,170,.15));color:var(--c);border:1px solid rgba(0,245,255,.3);border-radius:6px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;transition:all .3s;font-weight:600;}
+.ap-add:hover{background:rgba(0,245,255,.2);box-shadow:0 0 15px rgba(0,245,255,.2);}
+.ap-add:disabled{opacity:.4;cursor:not-allowed;}
+.itbl{width:100%;border-collapse:collapse;margin-top:14px;}
+.itbl th{padding:9px 11px;font-size:9px;font-family:'Orbitron',monospace;color:rgba(0,245,255,.45);letter-spacing:2px;text-align:left;border-bottom:1px solid var(--glb);}
+.itbl td{padding:9px 11px;font-size:12px;color:rgba(224,238,255,.65);border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+.itbl tr:hover td{background:rgba(0,245,255,.02);}
+.itbl img{width:38px;height:38px;object-fit:cover;border-radius:4px;border:1px solid var(--glb);}
+.taw{display:flex;gap:5px;}
+.te{background:rgba(0,245,255,.1);border:1px solid rgba(0,245,255,.25);color:var(--c);padding:4px 9px;border-radius:4px;cursor:pointer;font-size:10px;transition:all .2s;}
+.te:hover{background:rgba(0,245,255,.2);}
+.td{background:rgba(255,0,170,.1);border:1px solid rgba(255,0,170,.25);color:var(--m);padding:4px 9px;border-radius:4px;cursor:pointer;font-size:10px;transition:all .2s;}
+.td:hover{background:rgba(255,0,170,.2);}
+.tp{background:rgba(0,245,255,.1);border:1px solid rgba(0,245,255,.25);color:var(--c);padding:4px 9px;border-radius:4px;cursor:pointer;font-size:10px;}
+
+/* UPLOAD ZONES */
+.uz{border:2px dashed rgba(0,245,255,.2);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all .3s;position:relative;margin-bottom:9px;}
+.uz:hover{border-color:var(--c);background:rgba(0,245,255,.02);}
+.uz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.uz .ui{font-size:26px;margin-bottom:6px;}
+.uz p{font-size:11px;color:rgba(224,238,255,.35);}
+.fn{font-size:11px;color:var(--c);margin-top:5px;}
+.uprev{width:72px;height:72px;object-fit:cover;border-radius:7px;border:2px solid var(--c);margin:8px auto;display:none;display:block;}
+.uprev[src=""]{display:none;}
+.mz{border:2px dashed rgba(255,0,170,.2);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:all .3s;position:relative;margin-bottom:9px;}
+.mz:hover{border-color:var(--m);background:rgba(255,0,170,.02);}
+.mz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.mz p{font-size:11px;color:rgba(224,238,255,.3);}
+.mn{font-size:11px;color:var(--m);margin-top:5px;}
+
+/* PROGRESS */
+.uprog{width:100%;height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:6px;}
+.uprogf{height:100%;background:linear-gradient(90deg,var(--c),var(--m));border-radius:2px;width:0%;transition:width .2s;}
+
+/* EDIT MODAL */
+.em{background:var(--dk2);border:1px solid var(--glb);border-radius:14px;padding:28px;width:90%;max-width:480px;position:relative;max-height:85vh;overflow-y:auto;}
+.em::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--c),transparent);}
+.em h3{font-family:'Orbitron',monospace;font-size:14px;color:var(--c);margin-bottom:16px;}
+.em .fg input,.em .fg textarea,.em .fg select{background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:10px 13px;color:#e0eeff;font-family:'Inter',sans-serif;font-size:13px;outline:none;width:100%;}
+.em .fg input:focus{border-color:var(--c);}
+.em-btns{display:flex;gap:9px;margin-top:16px;}
+.em-save{flex:1;padding:11px;background:linear-gradient(135deg,var(--c),#0088aa);color:#000;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:13px;transition:all .3s;}
+.em-save:hover{box-shadow:0 0 20px rgba(0,245,255,.4);}
+.em-cancel{padding:11px 18px;background:rgba(255,255,255,.04);color:rgba(224,238,255,.4);border:1px solid rgba(255,255,255,.08);border-radius:6px;cursor:pointer;font-size:13px;}
+
+/* PASS INFO */
+.pi{background:rgba(0,0,0,.3);border:1px solid rgba(0,245,255,.1);border-radius:8px;padding:13px;font-size:12px;color:rgba(0,245,255,.45);line-height:1.9;margin-top:13px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--dk2);border:1px solid var(--c);border-radius:8px;padding:13px 18px;font-size:12px;color:var(--c);z-index:99998;transform:translateY(100px);opacity:0;transition:all .4s;font-family:'Orbitron',monospace;letter-spacing:1px;box-shadow:0 10px 30px rgba(0,245,255,.15);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.err{border-color:var(--m);color:var(--m);box-shadow:0 10px 30px rgba(255,0,170,.15);}
+.toast.ok2{border-color:#00c850;color:#00c850;}
+
+.back-btn{background:rgba(255,0,170,.1);color:var(--m);border:1px solid rgba(255,0,170,.25);padding:8px 18px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'Orbitron',monospace;letter-spacing:1px;transition:all .3s;}
+.back-btn:hover{background:rgba(255,0,170,.2);}
+
+.fi{opacity:0;transform:translateY(26px);transition:all .8s ease;}
+
+/* SEARCH */
+#music-search:focus{border-color:var(--c);box-shadow:0 0 20px rgba(0,245,255,.12);background:rgba(0,245,255,.07);}
+.sr-item{display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;transition:background .2s;border-bottom:1px solid rgba(255,255,255,.04);}
+.sr-item:last-child{border-bottom:none;}
+.sr-item:hover{background:rgba(0,245,255,.08);}
+.sr-cover{width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0;}
+.sr-icon{width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.sr-info{flex:1;min-width:0;}
+.sr-title{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sr-sub{font-size:10px;color:rgba(224,238,255,.35);margin-top:2px;display:flex;align-items:center;gap:6px;}
+.sr-badge{font-size:9px;padding:1px 7px;border-radius:8px;font-family:Orbitron,monospace;letter-spacing:1px;font-weight:700;}
+.sr-badge.yt{background:rgba(255,0,0,.2);color:#ff4444;border:1px solid rgba(255,0,0,.3);}
+.sr-badge.sc{background:rgba(255,85,0,.2);color:#ff5500;border:1px solid rgba(255,85,0,.3);}
+.sr-badge.mp3{background:rgba(0,245,255,.15);color:var(--c);border:1px solid rgba(0,245,255,.25);}
+.sr-empty{padding:24px;text-align:center;color:rgba(224,238,255,.25);font-size:13px;}
+.sr-empty div{font-size:28px;margin-bottom:8px;}
+.sr-header{padding:8px 16px 4px;font-family:Orbitron,monospace;font-size:9px;letter-spacing:3px;color:rgba(224,238,255,.2);}
+.fi.v{opacity:1;transform:translateY(0);}
+
+@media(max-width:768px){
+  nav{padding:0 12px;}
+  .nav-r a{padding:5px 8px;font-size:10px;}
+  .av{width:120px;height:120px;}
+  .ctc{padding:26px 16px;}
+  .ap-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="cur"></div><div id="cdot"></div>
+<div id="ptcl"></div>
+<div class="gbg"></div>
+<div id="fb-status"></div>
+
+<!-- FIREBASE SETUP OVERLAY -->
+<div id="setup-overlay">
+  <div class="setup-box">
+    <h2>🔥 Connect Firebase</h2>
+    <p class="desc">Firebase saves your music, NFTs, and covers permanently on the cloud — free forever for your usage level.</p>
+    <div class="setup-steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Create project (free)</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Click <strong style="color:#e0eeff">Firestore Database</strong> → Create → Start in test mode</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Click <strong style="color:#e0eeff">Storage</strong> → Get started → Test mode</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Project Settings → Add Web App → Copy the <strong style="color:var(--c)">firebaseConfig</strong> object</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">Paste the entire config JSON below and click Connect</div></div>
+    </div>
+    <textarea class="setup-input" id="fb-config-input" rows="8" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "your-app.firebaseapp.com",
+  "projectId": "your-project-id",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123:web:abc"
+}'></textarea>
+    <button class="setup-btn" onclick="connectFirebase()">🔥 Connect & Save</button>
+    <button class="setup-skip" onclick="skipSetup()">Skip for now (data won't be saved)</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="#hero" class="logo">AWESOME MUSIC</a>
+  <div class="nav-r">
+    <a href="#music" data-i18n="nav_music">🎵 Music</a>
+    <a href="#covers" data-i18n="nav_covers">Covers</a>
+    <a href="#videos" style="color:rgba(224,238,255,.6);text-decoration:none;font-size:12px;padding:6px 12px;border-radius:4px;border:1px solid transparent;transition:all .3s;font-weight:600;white-space:nowrap;" onmouseover="this.style.color='var(--c)';this.style.borderColor='var(--glb)'" onmouseout="this.style.color='rgba(224,238,255,.6)';this.style.borderColor='transparent'">🎬 Videos</a>
+    <a href="#nft" data-i18n="nav_nft">NFT</a>
+    <a href="#channels" data-i18n="nav_channels">Channels</a>
+    <a href="#contact" data-i18n="nav_contact">Contact</a>
+    <div class="lw">
+      <a href="#" id="lbtn" onclick="toggleL(event)"><span id="cf">🌐</span><span id="cl">EN</span>▾</a>
+      <div class="ldd" id="ldd">
+        <div class="li" data-lang="en" onclick="setL('en')">🇺🇸 English</div>
+        <div class="li" data-lang="ar" onclick="setL('ar')">🇸🇦 العربية</div>
+        <div class="li" data-lang="fr" onclick="setL('fr')">🇫🇷 Français</div>
+        <div class="li" data-lang="es" onclick="setL('es')">🇪🇸 Español</div>
+        <div class="li" data-lang="de" onclick="setL('de')">🇩🇪 Deutsch</div>
+        <div class="li" data-lang="ja" onclick="setL('ja')">🇯🇵 日本語</div>
+        <div class="li" data-lang="ko" onclick="setL('ko')">🇰🇷 한국어</div>
+        <div class="li" data-lang="pt" onclick="setL('pt')">🇧🇷 Português</div>
+        <div class="li" data-lang="ru" onclick="setL('ru')">🇷🇺 Русский</div>
+        <div class="li" data-lang="tr" onclick="setL('tr')">🇹🇷 Türkçe</div>
+        <div class="li" data-lang="zh" onclick="setL('zh')">🇨🇳 中文</div>
+        <div class="li" data-lang="it" onclick="setL('it')">🇮🇹 Italiano</div>
+      </div>
+    </div>
+    <a href="#" id="abtn" onclick="openLogin()">⚡ Owner</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hbg"><img id="hbg" src="" alt=""/></div>
+  <div class="hov"></div>
+  <div class="hc">
+    <img id="hav" src="" alt="Awesome Music" class="av"/>
+    <div class="ht gl" data-text="AWESOME MUSIC">AWESOME MUSIC</div>
+    <div class="hs">LYRICSAWESOMEMUSIC</div>
+    <p class="htag" data-i18n="hero_tag">Digital Art · Music · NFT · Limitless Creativity</p>
+    <div class="ctas">
+      <a href="#music" class="bp" data-i18n="hero_listen">🎵 Listen Now</a>
+      <a href="#nft" class="bg" data-i18n="hero_gallery">🎨 NFT Gallery</a>
+    </div>
+  </div>
+  <div class="si"><span>SCROLL</span><div class="sl"></div></div>
+</section>
+
+<!-- MUSIC PLAYER -->
+<section id="music">
+  <div class="con">
+    <div class="sh fi">
+      <div class="st">// MUSIC PLAYER</div>
+      <h2 class="stl" data-i18n="sec_music">My <span>Music</span></h2>
+      <div class="sl2"></div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="fi" style="max-width:860px;margin:0 auto 16px;position:relative;z-index:10;">
+      <div style="position:relative;display:flex;align-items:center;">
+        <span style="position:absolute;left:14px;font-size:16px;color:rgba(0,245,255,.5);pointer-events:none;">🔍</span>
+        <input type="text" id="music-search" placeholder="Search tracks by title or artist..." oninput="searchMusic(this.value)" onfocus="if(this.value.trim())showSearchOverlay()" style="width:100%;padding:13px 44px;background:rgba(0,245,255,.05);border:1px solid rgba(0,245,255,.2);border-radius:12px;color:#e0eeff;font-size:13px;outline:none;font-family:Inter,sans-serif;transition:all .3s;"/>
+        <button id="search-clear" onclick="clearSearch()" style="position:absolute;right:12px;background:rgba(255,255,255,.08);border:none;color:rgba(224,238,255,.4);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;display:none;align-items:center;justify-content:center;">✕</button>
+      </div>
+    </div>
+
+    <!-- SEARCH OVERLAY -->
+    <div id="search-overlay-bg" onclick="clearSearch()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:8500;"></div>
+    <div id="search-results" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:92%;max-width:520px;max-height:70vh;background:var(--dk2);border:1px solid rgba(0,245,255,.25);border-radius:16px;overflow:hidden;z-index:8600;box-shadow:0 30px 80px rgba(0,0,0,.8);">
+      <div style="padding:14px 18px;background:rgba(0,245,255,.06);border-bottom:1px solid rgba(0,245,255,.12);display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;"><span>🔍</span><span id="search-label" style="font-family:Orbitron,monospace;font-size:11px;color:var(--c);letter-spacing:2px;">SEARCH RESULTS</span></div>
+        <button onclick="clearSearch()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(224,238,255,.5);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;">✕</button>
+      </div>
+      <div id="search-results-inner" style="overflow-y:auto;max-height:calc(70vh - 60px);"></div>
+    </div>
+
+    <!-- PLAYLIST TABS -->
+    <div class="fi" style="display:flex;gap:0;margin-bottom:0;border-radius:14px 14px 0 0;overflow:hidden;border:1px solid var(--glb);border-bottom:none;max-width:860px;margin-left:auto;margin-right:auto;">
+      <button onclick="switchPL('yt')" id="plt-yt" style="flex:1;padding:12px 6px;background:rgba(255,0,0,.18);border:none;border-right:1px solid var(--glb);cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <img src="icon-yt.jpg" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,0,0,.6);box-shadow:0 0 12px rgba(255,0,0,.4);"/>
+        <span style="font-family:Orbitron,monospace;font-size:9px;color:#ff4444;letter-spacing:1px;font-weight:700;">▶ YouTube</span>
+      </button>
+      <button onclick="switchPL('sc')" id="plt-sc" style="flex:1;padding:12px 6px;background:rgba(255,85,0,.08);border:none;border-right:1px solid var(--glb);cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <img src="icon-sc.jpg" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,85,0,.4);box-shadow:0 0 12px rgba(255,85,0,.2);"/>
+        <span style="font-family:Orbitron,monospace;font-size:9px;color:rgba(255,85,0,.7);letter-spacing:1px;font-weight:700;">☁ SoundCloud</span>
+      </button>
+      <button onclick="switchPL('mp3')" id="plt-mp3" style="flex:1;padding:12px 6px;background:rgba(0,245,255,.05);border:none;cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <img src="icon-mp3.jpg" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,245,255,.3);box-shadow:0 0 12px rgba(0,245,255,.15);"/>
+        <span style="font-family:Orbitron,monospace;font-size:9px;color:rgba(0,245,255,.6);letter-spacing:1px;font-weight:700;">🎵 MP3</span>
+      </button>
+    </div>
+
+    <!-- MAIN PLAYER BOX -->
+    <div class="fi" style="background:var(--gl);border:1px solid var(--glb);border-radius:0 0 14px 14px;border-top:none;max-width:860px;margin:0 auto;padding:20px;">
+
+      <!-- YOUTUBE IFRAME -->
+      <div id="yt-player-wrap" style="display:none;margin-bottom:16px;border-radius:10px;overflow:hidden;">
+        <div style="position:relative;padding-top:56.25%;background:#000;">
+          <iframe id="yt-iframe" style="position:absolute;top:0;left:0;width:100%;height:100%;" src="" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
+        </div>
+      </div>
+
+      <!-- SOUNDCLOUD IFRAME -->
+      <div id="sc-player-wrap" style="display:none;margin-bottom:16px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,85,0,.2);">
+        <iframe id="sc-iframe" width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="" style="display:block;"></iframe>
+      </div>
+
+      <!-- MP3 PLAYER (rebuilt) -->
+      <div id="mp3-player-wrap" style="display:none;margin-bottom:16px;">
+        <style>
+          #mp3-player-wrap{user-select:none;}
+          #mp_pbar{width:100%;height:6px;background:rgba(255,255,255,.12);border-radius:3px;cursor:pointer;position:relative;touch-action:none;}
+          #mp_pbar:hover #mp_pfill{filter:brightness(1.3);}
+          #mp_pfill{height:100%;background:linear-gradient(90deg,var(--c),var(--m));border-radius:3px;width:0%;pointer-events:none;transition:width .05s linear;}
+          #mp_pthumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;background:#fff;border-radius:50%;box-shadow:0 0 8px var(--c);left:0%;pointer-events:none;opacity:0;transition:opacity .2s;}
+          #mp_pbar:hover #mp_pthumb,#mp_pbar.dragging #mp_pthumb{opacity:1;}
+          #mp_voltrack{flex:1;height:28px;display:flex;align-items:center;cursor:pointer;position:relative;touch-action:none;}
+          #mp_volrail{width:100%;height:5px;background:rgba(255,255,255,.1);border-radius:3px;position:relative;pointer-events:none;}
+          #mp_volfill{height:100%;background:linear-gradient(90deg,var(--c),var(--m));border-radius:3px;width:80%;transition:width .05s;}
+          #mp_volthumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:#fff;border-radius:50%;box-shadow:0 0 10px var(--c);left:80%;pointer-events:none;}
+          #mp_playbtn{background:linear-gradient(135deg,var(--c),#006688);border:none;color:#000;width:62px;height:62px;border-radius:50%;cursor:pointer;font-size:22px;font-weight:900;box-shadow:0 0 28px rgba(0,245,255,.5);transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0;}
+          #mp_playbtn:hover{transform:scale(1.08);box-shadow:0 0 40px rgba(0,245,255,.7);}
+          #mp_playbtn:active{transform:scale(.96);}
+          .mp_navbtn{background:rgba(0,245,255,.08);border:2px solid rgba(0,245,255,.2);color:var(--c);width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:17px;transition:all .25s;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+          .mp_navbtn:hover{background:rgba(0,245,255,.2);border-color:var(--c);transform:scale(1.07);}
+          .mp_navbtn:active{transform:scale(.94);}
+          #mp_likebtn{background:rgba(255,0,100,.08);border:1px solid rgba(255,0,100,.25);color:rgba(255,100,130,.6);padding:7px 14px;border-radius:20px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;transition:all .25s;flex-shrink:0;}
+          #mp_likebtn.liked{background:rgba(255,0,100,.28);border-color:rgba(255,50,100,.7);color:#ff3366;}
+          #mp_likebtn:hover{transform:scale(1.05);}
+          #mp_likebtn:active{transform:scale(.95);}
+          #mp_mutebtn{background:none;border:none;font-size:19px;cursor:pointer;transition:opacity .2s;flex-shrink:0;padding:2px;}
+          #mp_mutebtn:hover{opacity:.7;}
+        </style>
+
+        <!-- Cover + Info + Like -->
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;padding:14px;background:rgba(0,0,0,.35);border-radius:12px;border:1px solid rgba(0,245,255,.1);">
+          <img id="npc" style="width:65px;height:65px;border-radius:10px;object-fit:cover;border:2px solid var(--c);box-shadow:0 0 20px rgba(0,245,255,.3);flex-shrink:0;" src="" alt=""/>
+          <div style="flex:1;min-width:0;">
+            <div id="npt" style="font-size:15px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Select a track</div>
+            <div id="npa" style="font-size:11px;color:rgba(0,245,255,.6);margin-top:3px;">—</div>
+          </div>
+          <button id="mp_likebtn">
+            <span id="mp_likeicon">♡</span>
+            <span id="mp_likecount" style="font-family:Orbitron,monospace;font-size:10px;">0</span>
+          </button>
+        </div>
+
+        <!-- Progress Bar -->
+        <div style="margin-bottom:14px;padding:0 4px;">
+          <div id="mp_pbar">
+            <div id="mp_pfill"></div>
+            <div id="mp_pthumb"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:5px;">
+            <span id="mp_ct" style="font-family:Orbitron,monospace;font-size:10px;color:rgba(224,238,255,.3);">0:00</span>
+            <span id="mp_dt" style="font-family:Orbitron,monospace;font-size:10px;color:rgba(224,238,255,.3);">0:00</span>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:18px;">
+          <button class="mp_navbtn" id="mp_prevbtn">⏮</button>
+          <button id="mp_playbtn">▶</button>
+          <button class="mp_navbtn" id="mp_nextbtn">⏭</button>
+        </div>
+
+        <!-- Volume -->
+        <div style="display:flex;align-items:center;gap:10px;padding:0 8px;">
+          <button id="mp_mutebtn">🔊</button>
+          <div id="mp_voltrack">
+            <div id="mp_volrail">
+              <div id="mp_volfill"></div>
+            </div>
+            <div id="mp_volthumb"></div>
+          </div>
+          <span id="mp_volpct" style="font-family:Orbitron,monospace;font-size:10px;color:rgba(0,245,255,.6);min-width:36px;text-align:right;">80%</span>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div id="player-empty" style="padding:40px;text-align:center;color:rgba(224,238,255,.2);">
+        <div style="font-size:36px;margin-bottom:10px">🎵</div>
+        <span style="font-family:Orbitron,monospace;font-size:11px;letter-spacing:2px;">Select a track to play</span>
+      </div>
+
+      <!-- NOW PLAYING BAR -->
+      <div id="np-bar" style="display:none;padding:12px 16px;background:rgba(0,0,0,.4);border-top:1px solid var(--glb);border-radius:0 0 10px 10px;margin:-20px -20px -20px;margin-top:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+            <div id="np-bar-icon" style="width:36px;height:36px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;background:rgba(255,255,255,.07);">🎵</div>
+            <div style="min-width:0;">
+              <div id="np-bar-title" style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;"></div>
+              <div id="np-bar-artist" style="font-size:10px;color:rgba(224,238,255,.35);margin-top:2px;"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;">
+            <button id="np_likebtn" style="background:rgba(255,0,100,.08);border:1px solid rgba(255,0,100,.25);color:rgba(255,100,130,.6);padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:5px;transition:all .3s;">
+              <span id="np_likeicon">♡</span>
+              <span id="np_likecount" style="font-family:Orbitron,monospace;font-size:10px;">0</span>
+            </button>
+            <button onclick="prevT()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(224,238,255,.45);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:12px;transition:all .3s;">⏮</button>
+            <button onclick="nextT()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(224,238,255,.45);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:12px;transition:all .3s;">⏭</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PLAYLISTS -->
+    <div style="max-width:860px;margin:16px auto 0;">
+      <div id="pl-yt" style="display:block;">
+        <div style="font-family:Orbitron,monospace;font-size:10px;color:rgba(255,0,0,.6);letter-spacing:3px;margin-bottom:10px;padding:0 4px;">▶ YOUTUBE PLAYLIST</div>
+        <ul class="playlist" id="playlist-yt"><li class="epl"><div>▶</div><span>No YouTube tracks yet</span></li></ul>
+      </div>
+      <div id="pl-sc" style="display:none;">
+        <div style="font-family:Orbitron,monospace;font-size:10px;color:rgba(255,85,0,.6);letter-spacing:3px;margin-bottom:10px;padding:0 4px;">☁ SOUNDCLOUD PLAYLIST</div>
+        <ul class="playlist" id="playlist-sc"><li class="epl"><div>☁</div><span>No SoundCloud tracks yet</span></li></ul>
+      </div>
+      <div id="pl-mp3" style="display:none;">
+        <div style="font-family:Orbitron,monospace;font-size:10px;color:rgba(0,245,255,.5);letter-spacing:3px;margin-bottom:10px;padding:0 4px;">🎵 MP3 PLAYLIST</div>
+        <ul class="playlist" id="playlist-mp3"><li class="epl"><div>🎵</div><span>No MP3 tracks yet</span></li></ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- COVERS -->
+<section id="covers">
+  <div class="con"><div class="sh fi"><div class="st">// MUSIC COVERS</div><h2 class="stl" data-i18n="sec_covers">Music <span>Covers</span></h2><div class="sl2"></div></div></div>
+  <div class="mq fi"><div class="mt" id="mtrack"></div></div>
+</section>
+
+<!-- NFT -->
+<!-- VIDEOS -->
+<section id="videos" style="background:var(--dk2);">
+  <div class="con">
+    <div class="sh fi">
+      <div class="st">// VIDEOS</div>
+      <h2 class="stl">Videos by <span>LyricsAwesomeMusic</span></h2>
+      <div class="sl2"></div>
+    </div>
+
+    <!-- VIDEO GRID -->
+    <div id="videos-grid" class="fi" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
+      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:rgba(224,238,255,.2);">
+        <div style="font-size:40px;margin-bottom:12px">🎬</div>
+        <span style="font-family:Orbitron,monospace;font-size:12px;letter-spacing:2px;">No videos yet</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="nft">
+  <div class="con">
+    <div class="sh fi">
+      <div class="st">// NFT COLLECTION</div>
+      <h2 class="stl" data-i18n="sec_nft">NFT <span>Collection</span></h2>
+      <div class="sl2"></div>
+    </div>
+
+    <!-- NFT FILTER TABS -->
+    <div class="fi" style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;justify-content:center;">
+      <button onclick="filterNFT('all')" id="nft-f-all" style="padding:9px 22px;background:rgba(255,0,170,.2);border:2px solid var(--m);color:var(--m);border-radius:20px;cursor:pointer;font-size:12px;font-family:Orbitron,monospace;letter-spacing:1px;transition:all .3s;font-weight:700;">ALL</button>
+      <button onclick="filterNFT('art')" id="nft-f-art" style="padding:9px 22px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);color:rgba(224,238,255,.4);border-radius:20px;cursor:pointer;font-size:12px;font-family:Orbitron,monospace;letter-spacing:1px;transition:all .3s;">🎨 ART</button>
+      <button onclick="filterNFT('music')" id="nft-f-music" style="padding:9px 22px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);color:rgba(224,238,255,.4);border-radius:20px;cursor:pointer;font-size:12px;font-family:Orbitron,monospace;letter-spacing:1px;transition:all .3s;">🎵 MUSIC</button>
+      <button onclick="filterNFT('limited')" id="nft-f-limited" style="padding:9px 22px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);color:rgba(224,238,255,.4);border-radius:20px;cursor:pointer;font-size:12px;font-family:Orbitron,monospace;letter-spacing:1px;transition:all .3s;">⭐ LIMITED</button>
+    </div>
+
+    <div class="ng fi" id="nft-grid"></div>
+
+    <!-- NFT COUNT -->
+    <div style="text-align:center;margin-top:24px;">
+      <span id="nft-count" style="font-family:Orbitron,monospace;font-size:11px;color:rgba(224,238,255,.25);letter-spacing:2px;"></span>
+    </div>
+  </div>
+</section>
+
+<!-- CHANNELS -->
+<section id="channels">
+  <div class="con">
+    <div class="sh fi"><div class="st">// MY CHANNELS</div><h2 class="stl" data-i18n="sec_channels">Follow Me <span>Online</span></h2><div class="sl2"></div></div>
+    <div class="chg fi" id="ch-grid"></div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="con">
+    <div class="sh fi"><div class="st">// CONTACT</div><h2 class="stl" data-i18n="sec_contact">Get In <span>Touch</span></h2><div class="sl2"></div></div>
+    <div class="ctw fi"><div class="ctc">
+      <div class="fg"><label data-i18n="form_name">Name</label><input type="text" id="cn" placeholder="Your name..."/></div>
+      <div class="fg"><label data-i18n="form_email">Email</label><input type="email" id="ce" placeholder="email@example.com"/></div>
+      <div class="fg"><label data-i18n="form_msg">Message</label><textarea id="cm" placeholder="Your message..."></textarea></div>
+      <button class="sb" onclick="sendMsg()" data-i18n="form_send">Send Message ✦</button>
+      <div class="cte"><a href="mailto:awesomemusic@email.com" id="ct-email">✉ awesomemusic@email.com</a></div>
+    </div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="fl">AWESOME MUSIC</div>
+  <p data-i18n="footer">© 2025 LYRICSAWESOMEMUSIC — All Rights Reserved</p>
+</footer>
+
+<!-- LOGIN MODAL -->
+<div class="mbk" id="lm">
+  <div class="modal">
+    <button class="mc" onclick="closeLogin()">✕</button>
+    <h3>⚡ Owner Access</h3>
+    <p class="msub">SECURE FIREBASE LOGIN</p>
+    <div class="fg">
+      <label>Email</label>
+      <input type="email" id="ap-email" placeholder="your@email.com" style="direction:ltr" onkeydown="if(event.key==='Enter')document.getElementById('ap-pw').focus()"/>
+    </div>
+    <div class="fg">
+      <label>Password</label>
+      <input type="password" id="ap-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')chkPw()"/>
+    </div>
+    <button class="sb" id="login-submit-btn" onclick="chkPw()">🔐 Secure Login</button>
+    <div class="merr" id="ap-err"></div>
+    <div style="text-align:center;margin-top:14px;">
+      <button onclick="resetPassword()" style="background:none;border:none;color:rgba(0,245,255,.5);font-size:12px;cursor:pointer;text-decoration:underline;font-family:Inter,sans-serif;transition:color .3s;" onmouseover="this.style.color='var(--c)'" onmouseout="this.style.color='rgba(0,245,255,.5)'">🔑 Forgot password? Send reset email</button>
+    </div>
+    <!-- Auth banner inside modal -->
+    <div id="auth-banner" style="display:none;margin-top:14px;padding:12px;background:rgba(0,200,80,.08);border:1px solid rgba(0,200,80,.25);border-radius:8px;text-align:center;">
+      <div style="font-size:11px;color:#00c850;font-family:Orbitron,monospace;letter-spacing:1px;">✅ LOGGED IN SECURELY</div>
+      <button onclick="logoutOwner()" style="margin-top:8px;background:rgba(255,0,170,.1);border:1px solid rgba(255,0,170,.25);color:var(--m);padding:6px 16px;border-radius:6px;cursor:pointer;font-size:11px;">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="mbk" id="edit-modal">
+  <div class="em" id="em-content"></div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="ap">
+  <div class="ap-nav">
+    <h2><span class="fb-dot" id="fb-dot"></span>⚡ OWNER DASHBOARD</h2>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="fb-label" style="font-size:10px;font-family:Orbitron,monospace;color:rgba(224,238,255,.3);letter-spacing:1px">NOT CONNECTED</span>
+      <button onclick="logoutOwner()" style="background:rgba(255,0,170,.1);color:var(--m);border:1px solid rgba(255,0,170,.25);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-family:Orbitron,monospace;letter-spacing:1px;">🚪 Logout</button>
+      <button class="back-btn" onclick="closeAP()">← Back</button>
+    </div>
+  </div>
+  <div class="ap-tabs">
+    <div class="ap-tab act" onclick="swTab('music')">🎵 Music</div>
+    <div class="ap-tab" onclick="swTab('covers')">🖼 Covers</div>
+    <div class="ap-tab" onclick="swTab('nft')">🎨 NFT</div>
+    <div class="ap-tab" onclick="swTab('videos')">🎬 Videos</div>
+    <div class="ap-tab" onclick="swTab('channels')">📡 Channels</div>
+    <div class="ap-tab" onclick="swTab('visitors')">🌍 Visitors</div>
+    <div class="ap-tab" onclick="swTab('settings')">⚙ Settings</div>
+  </div>
+  <div class="ap-body">
+
+    <!-- MUSIC -->
+    <div class="ap-pane act" id="tab-music">
+      <div class="ap-card">
+        <h3>🎵 ADD NEW TRACK</h3>
+        <div class="ap-row">
+          <input type="text" id="nt-t" placeholder="Track title *"/>
+          <input type="text" id="nt-a" placeholder="Artist name"/>
+        </div>
+
+        <!-- SOURCE TYPE SELECTOR -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <button onclick="selectSrc('yt')" id="src-yt" style="flex:1;padding:10px;background:rgba(255,0,0,.15);border:2px solid rgba(255,0,0,.4);color:#ff4444;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;transition:all .3s;min-width:80px;">▶ YouTube</button>
+          <button onclick="selectSrc('sc')" id="src-sc" style="flex:1;padding:10px;background:rgba(255,85,0,.1);border:2px solid rgba(255,85,0,.25);color:rgba(255,85,0,.6);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;transition:all .3s;min-width:80px;">☁ SoundCloud</button>
+          <button onclick="selectSrc('mp3')" id="src-mp3" style="flex:1;padding:10px;background:rgba(0,245,255,.06);border:2px solid rgba(0,245,255,.15);color:rgba(0,245,255,.5);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;transition:all .3s;min-width:80px;">🎵 MP3 File</button>
+        </div>
+
+        <!-- YOUTUBE INPUT -->
+        <div id="src-yt-wrap" style="display:none;margin-bottom:10px;">
+          <div style="background:rgba(255,0,0,.06);border:2px solid rgba(255,0,0,.3);border-radius:10px;padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <span style="font-size:22px">▶</span>
+              <input type="url" id="nt-yt" placeholder="https://www.youtube.com/watch?v=..." style="flex:1;background:transparent;border:none;border-bottom:1px solid rgba(255,0,0,.3);color:#e0eeff;font-size:12px;padding:6px 0;outline:none;"/>
+            </div>
+            <p style="font-size:10px;color:rgba(255,80,80,.6);">Paste YouTube video link — plays inside the site ✅</p>
+          </div>
+        </div>
+
+        <!-- SOUNDCLOUD INPUT -->
+        <div id="src-sc-wrap" style="display:none;margin-bottom:10px;">
+          <div style="background:rgba(255,85,0,.06);border:2px solid rgba(255,85,0,.3);border-radius:10px;padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <span style="font-size:22px">☁</span>
+              <input type="url" id="nt-sc" placeholder="https://soundcloud.com/username/track-name" style="flex:1;background:transparent;border:none;border-bottom:1px solid rgba(255,85,0,.3);color:#e0eeff;font-size:12px;padding:6px 0;outline:none;"/>
+            </div>
+            <p style="font-size:10px;color:rgba(255,85,0,.6);">Paste your SoundCloud track link — plays inside the site ✅</p>
+          </div>
+        </div>
+
+        <!-- MP3 — GitHub Releases URL (recommended) or file upload -->
+        <div id="src-mp3-wrap" style="display:none;margin-bottom:10px;">
+          <div style="background:rgba(0,245,255,.04);border:2px solid rgba(0,245,255,.2);border-radius:10px;padding:14px;margin-bottom:8px;">
+            <div style="font-family:Orbitron,monospace;font-size:9px;color:var(--c);letter-spacing:2px;margin-bottom:8px;">⬆ GITHUB RELEASES — FREE &amp; UNLIMITED</div>
+            <p style="font-size:10px;color:rgba(0,245,255,.5);margin-bottom:8px;line-height:1.8;">
+              1. Go to GitHub repo → <strong style="color:#e0eeff">Releases</strong> → attach MP3<br/>
+              2. Right-click uploaded file → Copy link → paste below
+            </p>
+            <input type="url" id="nt-mp3-url" placeholder="https://github.com/LyricsAwesc/Awesome-Music/releases/download/v1.0/song.mp3" style="width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(0,245,255,.25);border-radius:6px;padding:9px 12px;color:#e0eeff;font-size:11px;outline:none;"/>
+            <a href="https://github.com/LyricsAwesc/Awesome-Music/releases" target="_blank" style="display:block;margin-top:8px;padding:8px;background:linear-gradient(135deg,rgba(0,245,255,.12),rgba(0,136,170,.12));border:1px solid rgba(0,245,255,.25);color:var(--c);border-radius:6px;font-size:10px;text-align:center;text-decoration:none;font-family:Orbitron,monospace;letter-spacing:1px;">🚀 Open My GitHub Releases</a>
+          </div>
+          <div style="text-align:center;font-size:10px;color:rgba(224,238,255,.15);margin-bottom:8px;letter-spacing:2px;">— OR UPLOAD FILE DIRECTLY —</div>
+          <div class="mz"><input type="file" id="nt-mp3" accept="audio/*" onchange="onMP3(this)"/>
+            <div style="font-size:22px;margin-bottom:5px">🎵</div>
+            <p>Upload MP3 directly (small files only)</p><p class="mn" id="mp3n"></p>
+          </div>
+        </div>
+
+        <!-- COVER IMAGE (all types) -->
+        <div class="uz"><input type="file" id="nt-img" accept="image/*" onchange="onImg(this,'nt-pv')"/>
+          <div class="ui">🖼</div><p>Cover image (optional)</p><p class="fn" id="nt-fn"></p>
+        </div>
+        <img id="nt-pv" class="uprev" src=""/>
+        <div class="uprog" id="up-prog"><div class="uprogf" id="up-progf"></div></div>
+        <button class="ap-add" id="add-track-btn" onclick="addTrack()">+ Add Track</button>
+      </div>
+      <div class="ap-card"><h3>📋 TRACKS</h3><div id="tracks-tbl"></div></div>
+    </div>
+
+    <div class="ap-pane" id="tab-covers">
+      <div class="ap-card">
+        <h3>🖼 ADD COVER</h3>
+        <div class="ap-row">
+          <input type="text" id="nc-t" placeholder="Song title *"/>
+          <input type="text" id="nc-a" placeholder="Artist / Genre"/>
+          <input type="url" id="nc-l" placeholder="Listen link"/>
+        </div>
+        <div class="uz"><input type="file" id="nc-img" accept="image/*" onchange="onImg(this,'nc-pv')"/>
+          <div class="ui">🖼</div><p>Upload cover image</p>
+        </div>
+        <img id="nc-pv" class="uprev" src=""/>
+        <input type="url" id="nc-iu" placeholder="Or paste image URL" style="width:100%;margin-top:6px;background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:9px 12px;color:#e0eeff;font-size:12px;outline:none;"/>
+        <br/><button class="ap-add" style="margin-top:9px" onclick="addCover()">+ Add Cover</button>
+      </div>
+      <div class="ap-card"><h3>📋 COVERS</h3><div id="covers-tbl"></div></div>
+    </div>
+
+    <!-- NFT -->
+    <div class="ap-pane" id="tab-nft">
+      <div class="ap-card">
+        <h3>🎨 ADD NFT</h3>
+        <div class="ap-row">
+          <input type="text" id="nn-t" placeholder="NFT title *"/>
+          <input type="text" id="nn-p" placeholder="Price (e.g. 0.5 ETH)"/>
+          <select id="nn-cat" style="background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:9px 12px;color:#e0eeff;font-size:12px;outline:none;">
+            <option value="art">🎨 Art</option>
+            <option value="music">🎵 Music</option>
+            <option value="limited">⭐ Limited Edition</option>
+          </select>
+        </div>
+
+        <!-- IMAGE SOURCE TABS -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+          <button onclick="selectNFTSrc('github')" id="nft-src-github" style="flex:1;padding:9px;background:rgba(0,245,255,.15);border:2px solid var(--c);color:var(--c);border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;font-family:Orbitron,monospace;transition:all .3s;min-width:80px;">⬆ GITHUB</button>
+          <button onclick="selectNFTSrc('url')" id="nft-src-url" style="flex:1;padding:9px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);color:rgba(224,238,255,.4);border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;font-family:Orbitron,monospace;transition:all .3s;min-width:80px;">🔗 URL</button>
+          <button onclick="selectNFTSrc('upload')" id="nft-src-upload" style="flex:1;padding:9px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);color:rgba(224,238,255,.4);border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;font-family:Orbitron,monospace;transition:all .3s;min-width:80px;">📁 FILE</button>
+        </div>
+
+        <!-- GITHUB RELEASES (recommended) -->
+        <div id="nft-src-github-wrap" style="margin-bottom:12px;">
+          <div style="background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.2);border-radius:10px;padding:16px;">
+            <div style="font-family:Orbitron,monospace;font-size:10px;color:var(--c);letter-spacing:2px;margin-bottom:10px;">⬆ GITHUB RELEASES — FREE &amp; UNLIMITED</div>
+            <div style="font-size:11px;color:rgba(224,238,255,.45);line-height:2;margin-bottom:12px;">
+              1. Go to your repo on GitHub<br/>
+              2. Click <strong style="color:#e0eeff">Releases</strong> → <strong style="color:#e0eeff">Create new release</strong><br/>
+              3. Set tag <strong style="color:var(--c)">v1.0</strong> → attach your image → Publish<br/>
+              4. Click the uploaded file → copy link → paste below ↓
+            </div>
+            <input type="url" id="nn-github" placeholder="https://github.com/LyricsAwesc/Awesome-Music/releases/download/v1.0/image.jpg" style="width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(0,245,255,.25);border-radius:6px;padding:10px 12px;color:#e0eeff;font-size:11px;outline:none;"/>
+            <div style="margin-top:8px;display:flex;gap:8px;">
+              <a href="https://github.com/LyricsAwesc/Awesome-Music/releases/new" target="_blank" style="flex:1;display:block;padding:9px;background:linear-gradient(135deg,rgba(0,245,255,.15),rgba(0,136,170,.15));border:1px solid rgba(0,245,255,.3);color:var(--c);border-radius:6px;font-size:11px;text-align:center;text-decoration:none;font-family:Orbitron,monospace;letter-spacing:1px;transition:all .3s;">🚀 Open GitHub Releases</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- URL INPUT -->
+        <div id="nft-src-url-wrap" style="display:none;margin-bottom:12px;">
+          <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;">
+            <div style="font-size:11px;color:rgba(224,238,255,.4);margin-bottom:8px;">Paste any direct image URL (IPFS, OpenSea, etc.)</div>
+            <input type="url" id="nn-imgurl" placeholder="https://..." style="width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:10px 12px;color:#e0eeff;font-size:12px;outline:none;"/>
+          </div>
+        </div>
+
+        <!-- FILE UPLOAD -->
+        <div id="nft-src-upload-wrap" style="display:none;margin-bottom:12px;">
+          <div style="background:rgba(255,165,0,.04);border:1px solid rgba(255,165,0,.2);border-radius:10px;padding:12px;margin-bottom:8px;">
+            <p style="font-size:10px;color:rgba(255,165,0,.6);">⚠ Large files may be slow. GitHub Releases is recommended for big images.</p>
+          </div>
+          <div class="uz"><input type="file" id="nn-img" accept="image/*" onchange="onImg(this,'nn-pv')"/>
+            <div class="ui">🎨</div><p>Upload NFT artwork</p>
+          </div>
+          <img id="nn-pv" class="uprev" src=""/>
+        </div>
+
+        <!-- OPENSEA LINK -->
+        <div style="background:rgba(32,129,226,.06);border:1px solid rgba(32,129,226,.25);border-radius:10px;padding:14px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:20px">🌊</span>
+            <span style="font-family:Orbitron,monospace;font-size:10px;color:rgba(32,129,226,.8);letter-spacing:2px;">OPENSEA / MARKETPLACE LINK</span>
+          </div>
+          <input type="url" id="nn-l" placeholder="https://opensea.io/assets/... (optional)" style="width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(32,129,226,.25);border-radius:6px;padding:10px 12px;color:#e0eeff;font-size:12px;outline:none;"/>
+          <p style="font-size:10px;color:rgba(32,129,226,.4);margin-top:5px;">Leave empty if not listed yet — you can edit anytime</p>
+        </div>
+
+        <button class="ap-add" onclick="addNFT()" style="width:100%;padding:12px;">+ Add to NFT Gallery</button>
+      </div>
+
+      <div class="ap-card">
+        <h3>🎵 GITHUB RELEASES FOR MP3</h3>
+        <div style="background:rgba(0,245,255,.03);border:1px solid rgba(0,245,255,.15);border-radius:10px;padding:16px;font-size:12px;color:rgba(224,238,255,.45);line-height:2;">
+          <strong style="color:var(--c);font-family:Orbitron,monospace;font-size:10px;letter-spacing:1px;">HOW TO USE GITHUB FOR MP3:</strong><br/>
+          1. Go to your GitHub repo → <strong style="color:#e0eeff">Releases</strong><br/>
+          2. Edit existing release or create new one<br/>
+          3. Drag your MP3 file into <strong style="color:#e0eeff">Attach binaries</strong><br/>
+          4. After upload → right-click the file → <strong style="color:#e0eeff">Copy link</strong><br/>
+          5. In Music tab → select <strong style="color:var(--c)">MP3</strong> → paste the GitHub link<br/><br/>
+          <a href="https://github.com/LyricsAwesc/Awesome-Music/releases" target="_blank" style="display:inline-block;padding:8px 18px;background:linear-gradient(135deg,rgba(0,245,255,.15),rgba(0,136,170,.15));border:1px solid rgba(0,245,255,.3);color:var(--c);border-radius:6px;font-size:11px;text-decoration:none;font-family:Orbitron,monospace;letter-spacing:1px;">🚀 Open My GitHub Releases</a>
+        </div>
+      </div>
+
+      <div class="ap-card"><h3>📋 NFT GALLERY</h3><div id="nft-tbl"></div></div>
+    </div>
+
+    <div class="ap-pane" id="tab-videos">
+      <div class="ap-card">
+        <h3>🎬 ADD VIDEO</h3>
+        <div class="ap-row">
+          <input type="text" id="nv-title" placeholder="Video title *"/>
+          <input type="text" id="nv-desc" placeholder="Short description (optional)"/>
+        </div>
+
+        <!-- VIDEO SOURCE -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+          <button onclick="selectVideoSrc('github')" id="vsrc-github" style="flex:1;padding:9px;background:rgba(0,245,255,.15);border:2px solid var(--c);color:var(--c);border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;font-family:Orbitron,monospace;transition:all .3s;min-width:100px;">⬆ GITHUB</button>
+          <button onclick="selectVideoSrc('url')" id="vsrc-url" style="flex:1;padding:9px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);color:rgba(224,238,255,.4);border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;font-family:Orbitron,monospace;transition:all .3s;min-width:100px;">🔗 URL</button>
+        </div>
+
+        <!-- GITHUB (recommended) -->
+        <div id="vsrc-github-wrap" style="margin-bottom:12px;">
+          <div style="background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.2);border-radius:10px;padding:16px;">
+            <div style="font-family:Orbitron,monospace;font-size:10px;color:var(--c);letter-spacing:2px;margin-bottom:10px;">⬆ GITHUB RELEASES — FREE UNLIMITED</div>
+            <div style="font-size:11px;color:rgba(224,238,255,.45);line-height:2;margin-bottom:12px;">
+              1. Go to GitHub repo → <strong style="color:#e0eeff">Releases</strong><br/>
+              2. Attach your video file (.mp4, .webm, etc.)<br/>
+              3. Right-click uploaded file → Copy link → paste below
+            </div>
+            <input type="url" id="nv-github" placeholder="https://github.com/LyricsAwesc/Awesome-Music/releases/download/v1.0/video.mp4" style="width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(0,245,255,.25);border-radius:6px;padding:10px 12px;color:#e0eeff;font-size:11px;outline:none;margin-bottom:8px;"/>
+            <a href="https://github.com/LyricsAwesc/Awesome-Music/releases" target="_blank" style="display:block;padding:8px;background:linear-gradient(135deg,rgba(0,245,255,.12),rgba(0,136,170,.12));border:1px solid rgba(0,245,255,.25);color:var(--c);border-radius:6px;font-size:10px;text-align:center;text-decoration:none;font-family:Orbitron,monospace;letter-spacing:1px;">🚀 Open GitHub Releases</a>
+          </div>
+        </div>
+
+        <!-- URL -->
+        <div id="vsrc-url-wrap" style="display:none;margin-bottom:12px;">
+          <input type="url" id="nv-url" placeholder="https://... (direct video URL)" style="width:100%;background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:10px 12px;color:#e0eeff;font-size:12px;outline:none;"/>
+        </div>
+
+        <!-- THUMBNAIL -->
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:10px;color:var(--c);letter-spacing:2px;margin-bottom:6px;font-family:Orbitron,monospace;">THUMBNAIL IMAGE (OPTIONAL)</label>
+          <div class="uz"><input type="file" id="nv-thumb" accept="image/*" onchange="onImg(this,'nv-thumb-pv')"/>
+            <div class="ui" style="font-size:20px">🖼</div><p>Upload thumbnail</p>
+          </div>
+          <img id="nv-thumb-pv" class="uprev" src=""/>
+          <input type="url" id="nv-thumb-url" placeholder="Or paste thumbnail URL from GitHub Releases" style="width:100%;margin-top:6px;background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:9px 12px;color:#e0eeff;font-size:11px;outline:none;"/>
+        </div>
+
+        <button class="ap-add" onclick="addVideo()" style="width:100%;padding:12px;">+ Add Video</button>
+      </div>
+      <div class="ap-card"><h3>📋 VIDEOS LIST</h3><div id="videos-tbl"></div></div>
+    </div>
+
+    <div class="ap-pane" id="tab-channels">
+      <div class="ap-card">
+        <h3>📡 ADD CHANNEL / SOCIAL LINK</h3>
+
+        <!-- QUICK ADD BUTTONS -->
+        <div style="margin-bottom:14px;">
+          <div style="font-family:Orbitron,monospace;font-size:9px;color:rgba(0,245,255,.5);letter-spacing:2px;margin-bottom:8px;">QUICK ADD — CLICK TO SELECT:</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="quickCh('YouTube','yt','My music videos')" style="padding:7px 12px;background:rgba(255,0,0,.15);border:1px solid rgba(255,0,0,.3);color:#ff4444;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .3s;">▶ YouTube</button>
+            <button onclick="quickCh('Facebook','fb','Follow on Facebook')" style="padding:7px 12px;background:rgba(24,119,242,.15);border:1px solid rgba(24,119,242,.3);color:#1877f2;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .3s;">f Facebook</button>
+            <button onclick="quickCh('Instagram','ig','Art & behind scenes')" style="padding:7px 12px;background:rgba(225,48,108,.15);border:1px solid rgba(225,48,108,.3);color:#e1306c;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .3s;">◈ Instagram</button>
+            <button onclick="quickCh('TikTok','tt','Short creative clips')" style="padding:7px 12px;background:rgba(255,0,80,.15);border:1px solid rgba(255,0,80,.3);color:#ff0050;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .3s;">♪ TikTok</button>
+            <button onclick="quickCh('SoundCloud','sc','Free streaming')" style="padding:7px 12px;background:rgba(255,85,0,.15);border:1px solid rgba(255,85,0,.3);color:#ff5500;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .3s;">☁ SoundCloud</button>
+            <button onclick="quickCh('Spotify','sp','Listen on Spotify')" style="padding:7px 12px;background:rgba(29,185,84,.15);border:1px solid rgba(29,185,84,.3);color:#1db954;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .3s;">◎ Spotify</button>
+            <button onclick="quickCh('Twitter/X','tw','Follow on X')" style="padding:7px 12px;background:rgba(29,161,242,.15);border:1px solid rgba(29,161,242,.3);color:#1da1f2;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .3s;">𝕏 Twitter</button>
+            <button onclick="quickCh('WhatsApp','wa','Contact on WhatsApp')" style="padding:7px 12px;background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#25d366;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .3s;">💬 WhatsApp</button>
+            <button onclick="quickCh('Telegram','tg','Join my Telegram')" style="padding:7px 12px;background:rgba(0,136,204,.15);border:1px solid rgba(0,136,204,.3);color:#0088cc;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .3s;">✈ Telegram</button>
+          </div>
+        </div>
+
+        <!-- MANUAL FORM -->
+        <div style="background:rgba(0,245,255,.03);border:1px solid rgba(0,245,255,.1);border-radius:10px;padding:14px;">
+          <div style="font-family:Orbitron,monospace;font-size:9px;color:rgba(0,245,255,.4);letter-spacing:2px;margin-bottom:10px;">CHANNEL DETAILS:</div>
+          <div class="ap-row">
+            <input type="text" id="nch-n" placeholder="Platform name *"/>
+            <input type="text" id="nch-d" placeholder="Description (e.g. My music videos)"/>
+          </div>
+          <div class="ap-row full" style="margin-bottom:10px;">
+            <input type="url" id="nch-u" placeholder="Full URL * (e.g. https://youtube.com/@YourChannel)" style="direction:ltr;"/>
+          </div>
+          <div class="ap-row">
+            <select id="nch-t">
+              <option value="yt">▶ YouTube</option>
+              <option value="fb">f Facebook</option>
+              <option value="ig">◈ Instagram</option>
+              <option value="tt">♪ TikTok</option>
+              <option value="sc">☁ SoundCloud</option>
+              <option value="sp">◎ Spotify</option>
+              <option value="tw">𝕏 Twitter/X</option>
+              <option value="wa">💬 WhatsApp</option>
+              <option value="tg">✈ Telegram</option>
+              <option value="other">🌐 Other</option>
+            </select>
+          </div>
+          <button class="ap-add" onclick="addCh()" style="width:100%;margin-top:6px;padding:11px;font-size:13px;">+ Add Channel</button>
+        </div>
+      </div>
+      <div class="ap-card"><h3>📋 MY CHANNELS</h3><div id="ch-tbl"></div></div>
+    </div>
+
+    <!-- VISITORS -->
+    <div class="ap-pane" id="tab-visitors">
+      <div class="ap-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
+          <h3 style="margin:0;">🌍 VISITOR ANALYTICS</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select id="vis-range" onchange="renderVisitors()" style="background:rgba(0,245,255,.06);border:1px solid rgba(0,245,255,.2);border-radius:6px;padding:6px 10px;color:#e0eeff;font-size:11px;outline:none;font-family:Orbitron,monospace;">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="0">All time</option>
+            </select>
+            <button onclick="clearVisitorData()" style="background:rgba(255,0,170,.08);border:1px solid rgba(255,0,170,.25);color:var(--m);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-family:Orbitron,monospace;">🗑 Clear</button>
+          </div>
+        </div>
+        <!-- Stats row -->
+        <div id="vis-stats-row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:22px;"></div>
+        <!-- Chart bar -->
+        <div style="margin-bottom:22px;">
+          <div style="font-family:Orbitron,monospace;font-size:10px;color:rgba(0,245,255,.5);letter-spacing:2px;margin-bottom:12px;">DAILY VISITS</div>
+          <div id="vis-chart" style="display:flex;align-items:flex-end;gap:4px;height:90px;overflow-x:auto;padding-bottom:4px;"></div>
+        </div>
+        <!-- Country table -->
+        <div style="font-family:Orbitron,monospace;font-size:10px;color:rgba(0,245,255,.5);letter-spacing:2px;margin-bottom:12px;">VISITS BY COUNTRY</div>
+        <div id="vis-countries" style="display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;"></div>
+        <div id="vis-empty" style="display:none;text-align:center;padding:40px;color:rgba(224,238,255,.2);font-family:Orbitron,monospace;font-size:12px;letter-spacing:2px;">NO VISITOR DATA YET<br/><span style="font-size:10px;color:rgba(224,238,255,.1);margin-top:8px;display:block;">Data will appear once visitors open your site</span></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="ap-pane" id="tab-settings">
+      <div class="ap-card">
+        <h3>🔥 FIREBASE CONNECTION</h3>
+        <p style="font-size:12px;color:rgba(224,238,255,.4);margin-bottom:14px;line-height:1.7">Paste your Firebase config to save all data permanently on the cloud.</p>
+        <textarea id="fb-cfg" rows="7" style="width:100%;background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:10px 13px;color:#e0eeff;font-size:11px;outline:none;font-family:monospace;resize:vertical;" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+        <button class="ap-add" style="margin-top:8px" onclick="saveFBConfig()">🔥 Connect Firebase</button>
+        <div class="pi" id="fb-status-info">Status: Not connected — data saved locally only</div>
+      </div>
+      <div class="ap-card">
+        <h3>⬆ GITHUB RELEASES — HOW TO UPLOAD FILES</h3>
+        <div style="background:rgba(0,245,255,.03);border:1px solid rgba(0,245,255,.15);border-radius:10px;padding:16px;font-size:12px;color:rgba(224,238,255,.45);line-height:2.1;margin-bottom:0;">
+          <strong style="color:var(--c);font-family:Orbitron,monospace;font-size:10px;letter-spacing:1px;">STEP BY STEP:</strong><br/>
+          1. Click the button below to open your GitHub Releases<br/>
+          2. Click <strong style="color:#e0eeff">Create a new release</strong><br/>
+          3. In Tag field type: <strong style="color:var(--c)">v1.0</strong> (or v2.0, v3.0 for new batches)<br/>
+          4. Scroll down → drag your images or MP3 files into <strong style="color:#e0eeff">Attach binaries</strong><br/>
+          5. Click <strong style="color:#e0eeff">Publish release</strong><br/>
+          6. Click on the uploaded file → <strong style="color:#e0eeff">Copy link address</strong><br/>
+          7. Paste that link in the Music or NFT tab ✅<br/><br/>
+          <strong style="color:var(--o);font-size:10px;">⚡ Limits: 2GB per file — Unlimited files — 100% Free</strong>
+        </div>
+        <a href="https://github.com/LyricsAwesc/Awesome-Music/releases/new" target="_blank" style="display:block;margin-top:12px;padding:11px;background:linear-gradient(135deg,rgba(0,245,255,.15),rgba(0,136,170,.15));border:1px solid rgba(0,245,255,.3);color:var(--c);border-radius:8px;font-size:12px;text-align:center;text-decoration:none;font-family:Orbitron,monospace;letter-spacing:2px;transition:all .3s;">🚀 OPEN GITHUB RELEASES →</a>
+        <a href="https://github.com/LyricsAwesc/Awesome-Music/releases" target="_blank" style="display:block;margin-top:8px;padding:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);color:rgba(224,238,255,.4);border-radius:8px;font-size:11px;text-align:center;text-decoration:none;font-family:Orbitron,monospace;letter-spacing:1px;">📋 VIEW ALL RELEASES</a>
+      </div>
+
+      <div class="ap-card">
+        <h3>✉ CONTACT EMAIL</h3>
+        <div class="ap-row"><input type="email" id="st-e" placeholder="Your contact email"/><input type="text" id="st-n" placeholder="Display name"/></div>
+        <button class="ap-add" onclick="saveSettings()">💾 Save</button>
+      </div>
+      <div class="ap-card">
+        <h3>🔑 CHANGE PASSWORD</h3>
+        <div style="background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.15);border-radius:10px;padding:16px;font-size:12px;color:rgba(224,238,255,.5);line-height:2;margin-bottom:12px;">
+          Password is managed securely by <strong style="color:var(--c)">Firebase Authentication</strong>.<br/>
+          To change your password, Firebase will send a reset link to your email.
+        </div>
+        <div class="ap-row full">
+          <input type="email" id="reset-email-ap" placeholder="Your email address" style="direction:ltr"/>
+        </div>
+        <button class="ap-add" onclick="resetPasswordFromSettings()" style="width:100%;margin-top:4px;">📧 Send Password Reset Email</button>
+      </div>
+      <div class="ap-card">
+        <h3>🗑 DANGER ZONE</h3>
+        <button class="ap-add" style="background:rgba(255,0,170,.1);color:var(--m);border-color:rgba(255,0,170,.3)" onclick="clearAll()">⚠ Reset All Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<audio id="aud"></audio>
+
+<script>
+// ===== TRANSLATIONS =====
+const T={en:{nav_music:'🎵 Music',nav_covers:'Covers',nav_nft:'NFT',nav_channels:'Channels',nav_contact:'Contact',hero_tag:'Digital Art · Music · NFT · Limitless Creativity',hero_listen:'🎵 Listen Now',hero_gallery:'🎨 NFT Gallery',sec_music:'My Music',sec_covers:'Music Covers',sec_nft:'NFT Collection',sec_channels:'Follow Me Online',sec_contact:'Get In Touch',form_name:'Name',form_email:'Email',form_msg:'Message',form_send:'Send Message ✦',footer:'© 2024 LYRICSAWESOMEMUSIC — All Rights Reserved',no_music:'No tracks yet — add from Owner dashboard',flag:'🇺🇸',dir:'ltr'},ar:{nav_music:'🎵 موسيقى',nav_covers:'أغلفة',nav_nft:'NFT',nav_channels:'قنواتي',nav_contact:'تواصل',hero_tag:'فن رقمي · موسيقى · NFT · إبداع بلا حدود',hero_listen:'🎵 استمع الآن',hero_gallery:'🎨 معرض NFT',sec_music:'موسيقاي',sec_covers:'أغلفة موسيقية',sec_nft:'مجموعة NFT',sec_channels:'تابعني على المنصات',sec_contact:'تواصل معي',form_name:'الاسم',form_email:'البريد الإلكتروني',form_msg:'الرسالة',form_send:'إرسال الرسالة ✦',footer:'© 2024 LYRICSAWESOMEMUSIC — كل الحقوق محفوظة',no_music:'لا توجد مقاطع — أضفها من لوحة المالك',flag:'🇸🇦',dir:'rtl'},fr:{nav_music:'🎵 Musique',nav_covers:'Covers',nav_nft:'NFT',nav_channels:'Chaînes',nav_contact:'Contact',hero_tag:'Art Numérique · Musique · NFT',hero_listen:'🎵 Écouter',hero_gallery:'🎨 Galerie NFT',sec_music:'Ma Musique',sec_covers:'Covers Musicaux',sec_nft:'Collection NFT',sec_channels:'Suivez-Moi',sec_contact:'Me Contacter',form_name:'Nom',form_email:'Email',form_msg:'Message',form_send:'Envoyer ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'Aucune piste',flag:'🇫🇷',dir:'ltr'},es:{nav_music:'🎵 Música',nav_covers:'Portadas',nav_nft:'NFT',nav_channels:'Canales',nav_contact:'Contacto',hero_tag:'Arte Digital · Música · NFT',hero_listen:'🎵 Escuchar',hero_gallery:'🎨 Galería NFT',sec_music:'Mi Música',sec_covers:'Portadas',sec_nft:'Colección NFT',sec_channels:'Sígueme',sec_contact:'Contáctame',form_name:'Nombre',form_email:'Email',form_msg:'Mensaje',form_send:'Enviar ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'Sin pistas',flag:'🇪🇸',dir:'ltr'},de:{nav_music:'🎵 Musik',nav_covers:'Cover',nav_nft:'NFT',nav_channels:'Kanäle',nav_contact:'Kontakt',hero_tag:'Digitale Kunst · Musik · NFT',hero_listen:'🎵 Anhören',hero_gallery:'🎨 NFT-Galerie',sec_music:'Meine Musik',sec_covers:'Musik Cover',sec_nft:'NFT Kollektion',sec_channels:'Folge Mir',sec_contact:'Kontakt',form_name:'Name',form_email:'Email',form_msg:'Nachricht',form_send:'Senden ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'Keine Titel',flag:'🇩🇪',dir:'ltr'},ja:{nav_music:'🎵 音楽',nav_covers:'カバー',nav_nft:'NFT',nav_channels:'チャンネル',nav_contact:'連絡',hero_tag:'デジタルアート · 音楽 · NFT',hero_listen:'🎵 今すぐ聴く',hero_gallery:'🎨 NFTギャラリー',sec_music:'マイミュージック',sec_covers:'音楽カバー',sec_nft:'NFTコレクション',sec_channels:'フォロー',sec_contact:'お問い合わせ',form_name:'名前',form_email:'メール',form_msg:'メッセージ',form_send:'送信 ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'トラックなし',flag:'🇯🇵',dir:'ltr'},ko:{nav_music:'🎵 음악',nav_covers:'커버',nav_nft:'NFT',nav_channels:'채널',nav_contact:'연락',hero_tag:'디지털 아트 · 음악 · NFT',hero_listen:'🎵 지금 듣기',hero_gallery:'🎨 NFT 갤러리',sec_music:'내 음악',sec_covers:'뮤직 커버',sec_nft:'NFT 컬렉션',sec_channels:'팔로우',sec_contact:'연락하기',form_name:'이름',form_email:'이메일',form_msg:'메시지',form_send:'보내기 ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'트랙 없음',flag:'🇰🇷',dir:'ltr'},pt:{nav_music:'🎵 Música',nav_covers:'Capas',nav_nft:'NFT',nav_channels:'Canais',nav_contact:'Contato',hero_tag:'Arte Digital · Música · NFT',hero_listen:'🎵 Ouvir',hero_gallery:'🎨 Galeria NFT',sec_music:'Minha Música',sec_covers:'Capas',sec_nft:'Coleção NFT',sec_channels:'Me Siga',sec_contact:'Contato',form_name:'Nome',form_email:'Email',form_msg:'Mensagem',form_send:'Enviar ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'Sem faixas',flag:'🇧🇷',dir:'ltr'},ru:{nav_music:'🎵 Музыка',nav_covers:'Обложки',nav_nft:'NFT',nav_channels:'Каналы',nav_contact:'Контакт',hero_tag:'Цифровое искусство · Музыка · NFT',hero_listen:'🎵 Слушать',hero_gallery:'🎨 NFT Галерея',sec_music:'Моя Музыка',sec_covers:'Обложки',sec_nft:'NFT Коллекция',sec_channels:'Подписаться',sec_contact:'Связь',form_name:'Имя',form_email:'Email',form_msg:'Сообщение',form_send:'Отправить ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'Нет треков',flag:'🇷🇺',dir:'ltr'},tr:{nav_music:'🎵 Müzik',nav_covers:'Kapaklar',nav_nft:'NFT',nav_channels:'Kanallar',nav_contact:'İletişim',hero_tag:'Dijital Sanat · Müzik · NFT',hero_listen:'🎵 Dinle',hero_gallery:'🎨 NFT Galeri',sec_music:'Müziğim',sec_covers:'Kapaklar',sec_nft:'NFT Koleksiyonu',sec_channels:'Takip Et',sec_contact:'İletişim',form_name:'Ad',form_email:'Email',form_msg:'Mesaj',form_send:'Gönder ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'Henüz parça yok',flag:'🇹🇷',dir:'ltr'},zh:{nav_music:'🎵 音乐',nav_covers:'封面',nav_nft:'NFT',nav_channels:'频道',nav_contact:'联系',hero_tag:'数字艺术 · 音乐 · NFT',hero_listen:'🎵 立即收听',hero_gallery:'🎨 NFT画廊',sec_music:'我的音乐',sec_covers:'音乐封面',sec_nft:'NFT收藏',sec_channels:'关注我',sec_contact:'联系我',form_name:'姓名',form_email:'邮箱',form_msg:'消息',form_send:'发送 ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'暂无曲目',flag:'🇨🇳',dir:'ltr'},it:{nav_music:'🎵 Musica',nav_covers:'Copertine',nav_nft:'NFT',nav_channels:'Canali',nav_contact:'Contatti',hero_tag:'Arte Digitale · Musica · NFT',hero_listen:'🎵 Ascolta',hero_gallery:'🎨 Galleria NFT',sec_music:'La Mia Musica',sec_covers:'Copertine',sec_nft:'Collezione NFT',sec_channels:'Seguimi',sec_contact:'Contattami',form_name:'Nome',form_email:'Email',form_msg:'Messaggio',form_send:'Invia ✦',footer:'© 2024 LYRICSAWESOMEMUSIC',no_music:'Nessuna traccia',flag:'🇮🇹',dir:'ltr'}};
+const LN={en:'EN',ar:'AR',fr:'FR',es:'ES',de:'DE',ja:'JA',ko:'KO',pt:'PT',ru:'RU',tr:'TR',zh:'ZH',it:'IT'};
+let lang='en';
+function tr(k){return(T[lang]||T.en)[k]||T.en[k]||k;}
+function applyLang(){document.documentElement.lang=lang;document.documentElement.dir=tr('dir');document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.getElementById('cf').textContent=tr('flag');document.getElementById('cl').textContent=LN[lang];document.querySelectorAll('.li').forEach(el=>el.classList.toggle('act',el.dataset.lang===lang));renderAll();}
+function setL(l){lang=l;localStorage.setItem('am_lang',l);document.getElementById('ldd').classList.remove('open');applyLang();}
+function toggleL(e){e.preventDefault();document.getElementById('ldd').classList.toggle('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('.lw'))document.getElementById('ldd').classList.remove('open');});
+
+// ===== HERO IMAGES =====
+const IMGS={h1:'hero1.jpg',h2:'hero2.jpg',h3:'hero3.jpg',h4:'hero4.jpg',h5:'hero5.jpg',h6:'hero6.jpg',h7:'hero7.jpg'};
+
+// ===== FIREBASE STATE =====
+let fbReady=false;
+let db=null,storage=null,fns=null;
+let tracks=[],covers=[],nfts=[],channels=[];
+let settings=JSON.parse(localStorage.getItem('am_settings')||'{}');
+let PASS=''; // Disabled — Firebase Auth only
+
+// ===== FIREBASE INIT =====
+// Poll for Firebase ready (handles async module loading)
+function waitForFirebase(attempt) {
+  if (window._fbReady && window.fbDB && window.fbStorage) {
+    console.log("🔥 Firebase ready, connecting...");
+    initFB();
+  } else if (attempt < 50) {
+    setTimeout(() => waitForFirebase(attempt + 1), 100);
+  } else {
+    console.warn("⚠ Firebase not loaded after 5s, using local storage");
+    fbStatus('warn','⚠ Using local storage — check internet connection');
+    setFBDot('err','OFFLINE');
+    loadLocal();
+  }
+}
+document.addEventListener('DOMContentLoaded', () => waitForFirebase(0));
+
+function initFB(){
+  try{
+    db=window.fbDB;storage=window.fbStorage;fns=window.fbFns;
+    if(!db||!storage){fbStatus('err','Firebase not loaded yet');return;}
+    fbReady=true;
+    fbStatus('ok','🔥 Connected to Firebase');
+    setFBDot('ok','CONNECTED');
+    loadAllFromFirebase();
+    document.getElementById('fb-status-info').textContent='Status: ✅ Connected — lyricsawesomemusic';
+  }catch(e){fbStatus('err','Firebase error: '+e.message);}
+}
+
+function showSetup(){ loadLocal(); }
+function skipSetup(){document.getElementById('setup-overlay').classList.remove('show');fbStatus('warn','⚠ Using local storage only');loadLocal();}
+
+function connectFirebase(){
+  const raw=document.getElementById('fb-config-input').value.trim();
+  try{
+    const cfg=JSON.parse(raw);
+    if(!cfg.apiKey||!cfg.projectId)throw new Error('Missing fields');
+    localStorage.setItem('am_fbconfig',JSON.stringify(cfg));
+    document.getElementById('setup-overlay').classList.remove('show');
+    toast('🔥 Firebase connected!','ok2');
+    initFB();
+  }catch(e){toast('Invalid config: '+e.message,'err');}
+}
+
+function saveFBConfig(){
+  const raw=document.getElementById('fb-cfg').value.trim();
+  try{
+    const cfg=JSON.parse(raw);
+    if(!cfg.apiKey||!cfg.projectId)throw new Error('Missing fields');
+    localStorage.setItem('am_fbconfig',JSON.stringify(cfg));
+    toast('🔥 Saved! Reload to connect.','ok2');
+    setTimeout(()=>location.reload(),1500);
+  }catch(e){toast('Invalid config: '+e.message,'err');}
+}
+
+function fbStatus(type,msg){const el=document.getElementById('fb-status');el.textContent=msg;el.className=type;setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity 0.5s';setTimeout(()=>{el.className='';el.style.opacity='';el.style.transition='';},500);},2000);}
+function setFBDot(type,label){const d=document.getElementById('fb-dot');const l=document.getElementById('fb-label');if(d){d.className='fb-dot '+(type==='ok'?'ok':'err');}if(l)l.textContent=label;}
+
+// ===== LOAD DATA =====
+function loadLocal(){
+  tracks=JSON.parse(localStorage.getItem('am_tracks')||'[]');
+  covers=JSON.parse(localStorage.getItem('am_covers')||'[]');
+  nfts=JSON.parse(localStorage.getItem('am_nfts')||'[]');
+  channels=JSON.parse(localStorage.getItem('am_channels')||'[]');
+  renderAll();
+}
+
+async function loadAllFromFirebase(){
+  try{
+    const {collection,getDocs,query,orderBy}=fns;
+    const [ts,cs,ns,chs,vs]=await Promise.all([
+      (async()=>{try{return await getDocs(query(collection(db,'tracks'),orderBy('order','asc')));}catch(e){try{return await getDocs(query(collection(db,'mySongs'),orderBy('createdAt','desc')));}catch(e2){return await getDocs(collection(db,'tracks')).catch(()=>({docs:[]}));}}})() ,
+      getDocs(query(collection(db,'covers'),orderBy('order','asc'))).catch(()=>getDocs(collection(db,'covers'))),
+      getDocs(query(collection(db,'nfts'),orderBy('order','asc'))).catch(()=>getDocs(collection(db,'nfts'))),
+      getDocs(collection(db,'channels')),
+      getDocs(collection(db,'videos')).catch(()=>({docs:[]}))
+    ]);
+    tracks=ts.docs.map(d=>{
+      const data=d.data();
+      return {
+        id:d.id,
+        title:data.title||data.name||'Unknown',
+        artist:data.artist||'',
+        src:data.src||data.url||'',
+        cover:data.cover||'',
+        trackType:data.trackType||'mp3',
+        likes:data.likes||0,
+        order:data.order||0
+      };
+    });
+    covers=cs.docs.map(d=>{const data=d.data();return {id:d.id,title:data.title||'',artist:data.artist||'',img:data.img||'',link:data.link||''};});
+    nfts=ns.docs.map(d=>{const data=d.data();return {id:d.id,title:data.title||'',price:data.price||'',img:data.img||'',link:data.link||'',cat:data.cat||'art',likes:data.likes||0};});
+    channels=chs.docs.map(d=>{const data=d.data();return {id:d.id,name:data.name||'',url:data.url||'',desc:data.desc||'',type:data.type||'other'};});
+    videos=vs.docs?vs.docs.map(d=>{const data=d.data();return {id:d.id,title:data.title||'',desc:data.desc||'',src:data.src||'',thumb:data.thumb||'',likes:data.likes||0};}):[];
+    renderAll();
+    toast('✅ Data loaded from cloud','ok2');
+  }catch(e){toast('Firebase read error: '+e.message,'err');loadLocal();}
+}
+
+function checkAuth(){
+  // Allow if Firebase Auth logged in OR local password used
+  if(window._fbAuthenticated&&window.fbUser)return true;
+  if(!fbReady)return true; // offline mode — use localStorage
+  toast('🔐 Please login as Owner first','err');
+  openLogin();
+  return false;
+}
+
+async function saveToFB(colName,data){
+  if(!fbReady)return saveLocal(colName,data);
+  const {collection,addDoc}=fns;
+  const docRef=await addDoc(collection(db,colName),{...data,order:Date.now()});
+  return docRef.id;
+}
+async function deleteFromFB(colName,id){
+  if(!fbReady)return;
+  const {doc,deleteDoc}=fns;
+  await deleteDoc(doc(db,colName,id));
+}
+async function updateInFB(colName,id,data){
+  if(!fbReady)return;
+  const {doc,updateDoc}=fns;
+  await updateDoc(doc(db,colName,id),data);
+}
+
+function saveLocal(col,data){
+  const map={tracks:'am_tracks',covers:'am_covers',nfts:'am_nfts',channels:'am_channels',videos:'am_videos'};
+  const k=map[col];if(!k)return;
+  const arr=JSON.parse(localStorage.getItem(k)||'[]');
+  data.id='l_'+Date.now();arr.push(data);
+  try{localStorage.setItem(k,JSON.stringify(arr));}catch(e){toast('Storage full!','err');}
+  return data.id;
+}
+
+async function uploadFile(file,path,onProgress){
+  if(!fbReady||!storage){
+    return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});
+  }
+  const {ref,uploadBytes,getDownloadURL}=fns;
+  const storageRef=ref(storage,path+'/'+Date.now()+'_'+file.name);
+  const snap=await uploadBytes(storageRef,file);
+  return await getDownloadURL(snap.ref);
+}
+
+// ===== AUDIO PLAYER (rebuilt) =====
+const aud = document.getElementById('aud');
+let curIdx = -1, playing = false;
+
+// ── Type helpers ──────────────────────────────────────────────────────────────
+function isSC(t){ return t.trackType==='soundcloud'||(t.src&&t.src.includes('soundcloud.com')); }
+function isYT(t){ return t.trackType==='youtube'||(t.src&&(t.src.includes('youtube.com')||t.src.includes('youtu.be'))); }
+function isMP3(t){ return !isSC(t)&&!isYT(t); }
+function ytVideoId(url){ if(!url)return''; const m=url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/); return m?m[1]:''; }
+
+// Internet Archive "details" page links aren't direct video files, so we
+// resolve them via the metadata API to find the actual playable file and
+// return a direct download URL. This lets the video load into our own
+// <video> element with fully custom controls — no archive.org UI, no
+// source/branding shown anywhere to the visitor.
+function getArchiveOrgIdentifier(url){
+  if(!url) return null;
+  const m = url.match(/archive\.org\/(?:details|embed)\/([^\/\?\s#]+)/i);
+  return m ? m[1] : null;
+}
+async function resolveArchiveDirectUrl(identifier){
+  try{
+    const resp=await fetch('https://archive.org/metadata/'+encodeURIComponent(identifier));
+    if(!resp.ok) return null;
+    const data=await resp.json();
+    if(!data || !Array.isArray(data.files)) return null;
+    const videoExt=/\.(mp4|m4v|webm|ogv)$/i;
+    let candidates=data.files.filter(f=>f.name && videoExt.test(f.name) && !/trailer|preview|sample|thumb/i.test(f.name));
+    if(!candidates.length) return null;
+    candidates.sort((a,b)=>{
+      const aMp4=/\.mp4$/i.test(a.name)?0:1, bMp4=/\.mp4$/i.test(b.name)?0:1;
+      if(aMp4!==bMp4) return aMp4-bMp4;
+      return (parseInt(b.size)||0)-(parseInt(a.size)||0);
+    });
+    return 'https://archive.org/download/'+identifier+'/'+encodeURIComponent(candidates[0].name);
+  }catch(e){ return null; }
+}
+function scEmbedUrl(url){ const clean=url.split('?')[0]; return 'https://w.soundcloud.com/player/?url='+encodeURIComponent(clean)+'&color=%2300f5ff&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false'; }
+function fmt(s){ const m=Math.floor(s/60); return m+':'+(Math.floor(s%60)<10?'0':'')+Math.floor(s%60); }
+
+// ── Stop everything ───────────────────────────────────────────────────────────
+function stopAllPlayers(){
+  aud.pause(); aud.src=''; playing=false;
+  const pb=document.getElementById('mp_playbtn'); if(pb) pb.innerHTML='▶';
+  const ytF=document.getElementById('yt-iframe'); if(ytF) ytF.src='';
+  const ytW=document.getElementById('yt-player-wrap'); if(ytW) ytW.style.display='none';
+  const scF=document.getElementById('sc-iframe'); if(scF) scF.src='';
+  const scW=document.getElementById('sc-player-wrap'); if(scW) scW.style.display='none';
+  const mpW=document.getElementById('mp3-player-wrap'); if(mpW) mpW.style.display='none';
+  document.querySelectorAll('video').forEach(v=>{ try{v.pause();v.src='';}catch(e){} });
+}
+
+// ── Likes system ─────────────────────────────────────────────────────────────
+let likes = JSON.parse(localStorage.getItem('am_likes')||'{}');
+let userLiked = JSON.parse(localStorage.getItem('am_userliked')||'{}');
+function getLikes(id){ return likes[id]||0; }
+function hasLiked(id){ return !!userLiked[id]; }
+
+function _saveLikes(){ localStorage.setItem('am_likes',JSON.stringify(likes)); localStorage.setItem('am_userliked',JSON.stringify(userLiked)); }
+
+function _refreshLikeUI(trackId){
+  const liked = hasLiked(trackId);
+  const count = getLikes(trackId);
+  // Main player buttons
+  const btn  = document.getElementById('mp_likebtn');
+  const icon = document.getElementById('mp_likeicon');
+  const cnt  = document.getElementById('mp_likecount');
+  if(btn)  btn.classList.toggle('liked', liked);
+  if(icon) icon.textContent = liked ? '♥' : '♡';
+  if(cnt)  cnt.textContent  = count;
+  // NP bar buttons
+  const nbtn  = document.getElementById('np_likebtn');
+  const nicon = document.getElementById('np_likeicon');
+  const ncnt  = document.getElementById('np_likecount');
+  if(nbtn)  nbtn.classList.toggle('liked', liked);
+  if(nicon) nicon.textContent = liked ? '♥' : '♡';
+  if(ncnt)  ncnt.textContent  = count;
+}
+
+async function toggleLike(){
+  if(curIdx < 0 || !tracks.length) return;
+  const t   = tracks[curIdx];
+  const id  = t.id || t.src;
+  if(!id) return;
+  if(hasLiked(id)){
+    likes[id]    = Math.max(0,(likes[id]||1)-1);
+    userLiked[id] = false;
+  } else {
+    likes[id]    = (likes[id]||0)+1;
+    userLiked[id] = true;
+  }
+  _saveLikes();
+  _refreshLikeUI(id);
+  renderPlaylist();
+  if(fbReady && t.id){ try{ await updateInFB('tracks',t.id,{likes:likes[id]}); }catch(e){} }
+}
+
+// ── Volume helpers ────────────────────────────────────────────────────────────
+function _setVol(v){
+  aud.volume = v;
+  const pct = Math.round(v*100);
+  const fill  = document.getElementById('mp_volfill');
+  const thumb = document.getElementById('mp_volthumb');
+  const pctEl = document.getElementById('mp_volpct');
+  const mute  = document.getElementById('mp_mutebtn');
+  if(fill)  fill.style.width  = pct+'%';
+  if(thumb) thumb.style.left  = pct+'%';
+  if(pctEl) pctEl.textContent = pct+'%';
+  if(mute)  mute.textContent  = v===0?'🔇':v<0.5?'🔉':'🔊';
+}
+function toggleMute(){
+  if(aud.volume>0){ aud._lastVol=aud.volume; _setVol(0); }
+  else { _setVol(aud._lastVol||0.8); }
+}
+
+// ── Drag helpers (reusable) ───────────────────────────────────────────────────
+function makeDraggable(el, onValue){
+  let down=false;
+  function calc(e){ const r=el.getBoundingClientRect(); const x=e.touches?e.touches[0].clientX:e.clientX; return Math.max(0,Math.min(1,(x-r.left)/r.width)); }
+  el.addEventListener('mousedown',  e=>{ down=true; onValue(calc(e)); e.preventDefault(); });
+  el.addEventListener('touchstart', e=>{ down=true; onValue(calc(e)); },{passive:true});
+  document.addEventListener('mousemove',  e=>{ if(down) onValue(calc(e)); });
+  document.addEventListener('touchmove',  e=>{ if(down) onValue(calc(e)); },{passive:true});
+  document.addEventListener('mouseup',   ()=>{ down=false; });
+  document.addEventListener('touchend',  ()=>{ down=false; });
+  el.addEventListener('click', e=>onValue(calc(e)));
+}
+
+// ── Audio events ──────────────────────────────────────────────────────────────
+aud.addEventListener('timeupdate', ()=>{
+  if(!aud.duration) return;
+  const pct = (aud.currentTime/aud.duration)*100;
+  const fill  = document.getElementById('mp_pfill');
+  const thumb = document.getElementById('mp_pthumb');
+  const ct    = document.getElementById('mp_ct');
+  const dt    = document.getElementById('mp_dt');
+  if(fill)  fill.style.width = pct+'%';
+  if(thumb) thumb.style.left = pct+'%';
+  if(ct) ct.textContent = fmt(aud.currentTime);
+  if(dt) dt.textContent = fmt(aud.duration);
+});
+aud.addEventListener('play',  ()=>{ playing=true;  const b=document.getElementById('mp_playbtn'); if(b) b.innerHTML='⏸'; });
+aud.addEventListener('pause', ()=>{ playing=false; const b=document.getElementById('mp_playbtn'); if(b) b.innerHTML='▶'; });
+aud.addEventListener('ended', ()=>{ playing=false; const b=document.getElementById('mp_playbtn'); if(b) b.innerHTML='▶'; nextT(); });
+aud.addEventListener('volumechange', ()=>{ if(!aud._volDragging) _setVol(aud.volume); });
+
+// ── Playlist navigation ───────────────────────────────────────────────────────
+function getSamePlTracks(){
+  if(curIdx<0) return tracks.filter(x=>isMP3(x));
+  const t=tracks[curIdx];
+  if(isYT(t)) return tracks.filter(x=>isYT(x));
+  if(isSC(t)) return tracks.filter(x=>isSC(x));
+  return tracks.filter(x=>isMP3(x));
+}
+function prevT(){
+  const same=getSamePlTracks(); if(!same.length) return;
+  const t=tracks[curIdx]; const i=same.indexOf(t); if(i<0) return;
+  playT(tracks.indexOf(same[i>0?i-1:same.length-1]));
+}
+function nextT(){
+  const same=getSamePlTracks(); if(!same.length) return;
+  const t=tracks[curIdx]; const i=same.indexOf(t); if(i<0) return;
+  playT(tracks.indexOf(same[i<same.length-1?i+1:0]));
+}
+
+// ── Source type selector (admin) ──────────────────────────────────────────────
+let curSrcType='yt';
+function selectSrc(type){
+  curSrcType=type;
+  ['yt','sc','mp3'].forEach(t=>{
+    const btn=document.getElementById('src-'+t); const wrap=document.getElementById('src-'+t+'-wrap');
+    if(!btn||!wrap) return;
+    const isA=t===type; const c={yt:'255,0,0',sc:'255,85,0',mp3:'0,245,255'}[t];
+    btn.style.background=isA?`rgba(${c},.25)`:`rgba(${c},.08)`;
+    btn.style.borderColor=isA?`rgba(${c},.8)`:`rgba(${c},.2)`;
+    btn.style.color=isA?`rgb(${c})`:`rgba(${c},.4)`;
+    wrap.style.display=isA?'block':'none';
+  });
+}
+
+// ── Master play function ──────────────────────────────────────────────────────
+function playT(i){
+  if(!tracks.length) return;
+  curIdx = i;
+  const t = tracks[i];
+  const trackId = t.id || t.src;
+
+  // Switch tab (do NOT stop players yet — avoids flash)
+  if(isYT(t)) _switchPLtab('yt');
+  else if(isSC(t)) _switchPLtab('sc');
+  else _switchPLtab('mp3');
+
+  // Update playlist UI
+  renderPlaylist();
+
+  // Show np-bar
+  const npBar = document.getElementById('np-bar');
+  if(npBar) npBar.style.display='block';
+  const nbt = document.getElementById('np-bar-title'); if(nbt) nbt.textContent=t.title;
+  const nba = document.getElementById('np-bar-artist'); if(nba) nba.textContent=t.artist||'LYRICSAWESOMEMUSIC';
+
+  // Refresh like UI for this track
+  _refreshLikeUI(trackId);
+  // Wire up like button for this track
+  const mlb = document.getElementById('mp_likebtn'); if(mlb) mlb.onclick=toggleLike;
+  const nlb = document.getElementById('np_likebtn'); if(nlb) nlb.onclick=toggleLike;
+
+  // Stop everything before switching
+  aud.pause(); aud.src=''; playing=false;
+  const ytF=document.getElementById('yt-iframe'); if(ytF) ytF.src='';
+  const scF=document.getElementById('sc-iframe'); if(scF) scF.src='';
+  ['yt-player-wrap','sc-player-wrap','mp3-player-wrap'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+  const empty=document.getElementById('player-empty'); if(empty) empty.style.display='none';
+
+  if(isYT(t)){
+    const vid=ytVideoId(t.src);
+    if(!vid){ toast('Invalid YouTube link','err'); return; }
+    document.getElementById('yt-player-wrap').style.display='block';
+    document.getElementById('yt-iframe').src=`https://www.youtube.com/embed/${vid}?autoplay=1&rel=0&modestbranding=1`;
+    const icon=document.getElementById('np-bar-icon'); if(icon){ icon.textContent='▶'; icon.style.background='rgba(255,0,0,.2)'; }
+  } else if(isSC(t)){
+    document.getElementById('sc-player-wrap').style.display='block';
+    document.getElementById('sc-iframe').src=scEmbedUrl(t.src);
+    const icon=document.getElementById('np-bar-icon'); if(icon){ icon.textContent='☁'; icon.style.background='rgba(255,85,0,.2)'; }
+  } else {
+    // MP3 ──────────────────────────────────────────
+    const mp3wrap=document.getElementById('mp3-player-wrap');
+    if(mp3wrap) mp3wrap.style.display='block';
+
+    // Update info
+    const npt=document.getElementById('npt'); if(npt) npt.textContent=t.title;
+    const npa=document.getElementById('npa'); if(npa) npa.textContent=t.artist||'—';
+    const npc=document.getElementById('npc'); if(npc) npc.src=t.cover||IMGS.h1;
+    const icon=document.getElementById('np-bar-icon'); if(icon){ icon.textContent='🎵'; icon.style.background='rgba(0,245,255,.1)'; }
+
+    // Reset progress UI
+    const fill=document.getElementById('mp_pfill'); if(fill) fill.style.width='0%';
+    const thumb=document.getElementById('mp_pthumb'); if(thumb) thumb.style.left='0%';
+    const ct=document.getElementById('mp_ct'); if(ct) ct.textContent='0:00';
+    const dt=document.getElementById('mp_dt'); if(dt) dt.textContent='0:00';
+
+    // Play
+    aud.src = t.src;
+    aud.load();
+    aud.play().catch(e=>{ console.error('play error:',e); toast('⚠ Could not play audio','err'); });
+
+    // Init volume UI
+    _setVol(aud.volume || 0.8);
+  }
+}
+
+// Separate internal tab switch (doesn't stop players unlike public switchPL)
+function _switchPLtab(type){
+  curPL=type;
+  ['yt','sc','mp3'].forEach(t=>{
+    const btn=document.getElementById('plt-'+t); const pl=document.getElementById('pl-'+t);
+    if(!btn||!pl) return;
+    const isA=t===type; const c={yt:'255,0,0',sc:'255,85,0',mp3:'0,245,255'}[t];
+    btn.style.background=isA?`rgba(${c},.22)`:`rgba(${c},.06)`;
+    btn.style.borderBottom=isA?`2px solid rgba(${c},.8)`:'2px solid transparent';
+    pl.style.display=isA?'block':'none';
+  });
+}
+
+// Public switchPL (used by tab buttons — stops players)
+let curPL='yt';
+function switchPL(type){
+  stopAllPlayers();
+  curIdx=-1;
+  const npBar=document.getElementById('np-bar'); if(npBar) npBar.style.display='none';
+  const empty=document.getElementById('player-empty'); if(empty) empty.style.display='block';
+  _switchPLtab(type);
+}
+
+// ── Wire buttons after DOM ready ──────────────────────────────────────────────
+(function initPlayerControls(){
+  function wire(){
+    // Play/pause
+    const pb = document.getElementById('mp_playbtn');
+    if(pb) pb.onclick = function(){
+      if(curIdx < 0){
+        const first = tracks.find(t=>isMP3(t));
+        if(first) playT(tracks.indexOf(first));
+        return;
+      }
+      if(playing){ aud.pause(); }
+      else {
+        if(!aud.src && curIdx>=0) aud.src = tracks[curIdx].src;
+        aud.play().catch(()=>{});
+      }
+    };
+
+    // Prev / Next
+    const prev = document.getElementById('mp_prevbtn');
+    const next = document.getElementById('mp_nextbtn');
+    if(prev) prev.onclick = ()=>{ if(curIdx>=0) prevT(); };
+    if(next) next.onclick = ()=>{ if(curIdx>=0) nextT(); };
+
+    // Mute
+    const mute = document.getElementById('mp_mutebtn');
+    if(mute) mute.onclick = toggleMute;
+
+    // Volume drag
+    const vt = document.getElementById('mp_voltrack');
+    if(vt) makeDraggable(vt, v=>{ aud._volDragging=true; _setVol(v); requestAnimationFrame(()=>{ aud._volDragging=false; }); });
+
+    // Progress drag
+    const pbar = document.getElementById('mp_pbar');
+    if(pbar){
+      pbar.classList.remove('dragging');
+      makeDraggable(pbar, v=>{
+        if(!aud.duration) return;
+        pbar.classList.add('dragging');
+        aud.currentTime = v * aud.duration;
+        requestAnimationFrame(()=>pbar.classList.remove('dragging'));
+      });
+    }
+
+    // Like buttons
+    const mlb = document.getElementById('mp_likebtn'); if(mlb) mlb.onclick=toggleLike;
+    const nlb = document.getElementById('np_likebtn'); if(nlb) nlb.onclick=toggleLike;
+
+    // Init volume display
+    _setVol(0.8); aud.volume=0.8;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wire);
+  else wire();
+})();
+function renderPlaylist(){
+  const ytTracks  = tracks.filter(t=>isYT(t));
+  const scTracks  = tracks.filter(t=>isSC(t));
+  const mp3Tracks = tracks.filter(t=>isMP3(t));
+
+  function buildList(arr, containerId, emptyIcon, emptyMsg){
+    const el=document.getElementById(containerId);
+    if(!el)return;
+    if(!arr.length){el.innerHTML=`<li class="epl"><div>${emptyIcon}</div><span>${emptyMsg}</span></li>`;return;}
+    el.innerHTML=arr.map((t,i)=>{
+      const globalIdx=tracks.indexOf(t);
+      const trackId=t.id||t.src;
+      const likeCount=t.likes||getLikes(trackId)||0;
+      const liked=hasLiked(trackId);
+      const coverHtml=isMP3(t)
+        ?`<img class="plc" src="${t.cover||IMGS.h1}" loading="lazy"/>`
+        :`<div class="plc" style="display:flex;align-items:center;justify-content:center;font-size:18px;background:${isYT(t)?'rgba(255,0,0,.12)':'rgba(255,85,0,.12)'};border:1px solid ${isYT(t)?'rgba(255,0,0,.25)':'rgba(255,85,0,.25)'}">${isYT(t)?'▶':'☁'}</div>`;
+      return `<li class="pli${globalIdx===curIdx?' active':''}" onclick="playT(${globalIdx})">
+        <div class="pln">${i+1}</div>
+        <div class="pl-bars"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+        ${coverHtml}
+        <div class="pli-info">
+          <div class="pli-t">${t.title}</div>
+          <div class="pli-a" style="display:flex;align-items:center;gap:8px;">
+            <span>${t.artist||''}</span>
+            ${likeCount>0?`<span style="font-size:10px;color:rgba(255,50,100,.7);">${liked?'♥':'♡'} ${likeCount}</span>`:''}
+          </div>
+        </div>
+      </li>`;
+    }).join('');
+  }
+
+  buildList(ytTracks,  'playlist-yt',  '▶', 'No YouTube tracks yet');
+  buildList(scTracks,  'playlist-sc',  '☁', 'No SoundCloud tracks yet');
+  buildList(mp3Tracks, 'playlist-mp3', '🎵', 'No MP3 tracks yet');
+}
+
+function renderCovers(){
+  if(!covers.length){document.getElementById('mtrack').innerHTML='<div style="padding:40px;color:rgba(224,238,255,.18);font-size:13px;text-align:center">No covers yet</div>';return;}
+  const d=[...covers,...covers];
+  document.getElementById('mtrack').innerHTML=d.map(c=>`<div class="cc" onclick="window.open('${c.link||'#'}','_blank')"><div style="position:relative"><img src="${c.img}" loading="lazy"/><div class="cplay">▶</div></div><div class="ci"><h4>${c.title}</h4><p>${c.artist||''}</p></div></div>`).join('');
+}
+let curNFTFilter='all';
+function filterNFT(cat){
+  curNFTFilter=cat;
+  ['all','art','music','limited'].forEach(c=>{
+    const btn=document.getElementById('nft-f-'+c);
+    if(!btn)return;
+    const isA=c===cat;
+    btn.style.background=isA?'rgba(255,0,170,.2)':'rgba(255,255,255,.04)';
+    btn.style.borderColor=isA?'var(--m)':'rgba(255,255,255,.1)';
+    btn.style.color=isA?'var(--m)':'rgba(224,238,255,.4)';
+    btn.style.fontWeight=isA?'700':'400';
+  });
+  renderNFTs();
+}
+
+function renderNFTs(){
+  const g=document.getElementById('nft-grid');
+  if(!g)return;
+  let filtered=curNFTFilter==='all'?nfts:nfts.filter(n=>n.cat===curNFTFilter);
+  const countEl=document.getElementById('nft-count');
+  if(countEl)countEl.textContent=filtered.length?filtered.length+' PIECE'+(filtered.length>1?'S':''):'';
+  if(!filtered.length){
+    g.innerHTML='<div class="empty-g"><div>🎨</div>'+(nfts.length?'No items in this category':'No NFTs yet — add from Owner dashboard')+'</div>';
+    return;
+  }
+  const catColors={art:'255,0,170',music:'0,245,255',limited:'255,165,0'};
+  const catLabels={art:'🎨 ART',music:'🎵 MUSIC',limited:'⭐ LIMITED'};
+  g.innerHTML=filtered.map((n,i)=>{
+    const cat=n.cat||'art';
+    const cc=catColors[cat]||'255,0,170';
+    const trackId=n.id||n.img;
+    const likeCount=n.likes||getLikes('nft_'+trackId)||0;
+    const liked=hasLiked('nft_'+trackId);
+    const hasOpenSea=n.link&&n.link.includes('opensea.io');
+    const hasMarket=n.link&&n.link.trim();
+    return `<div class="nc">
+      <div class="nb" style="background:linear-gradient(135deg,rgba(${cc},.8),rgba(${cc},.4))">${catLabels[cat]||'NFT'}</div>
+      <div class="iw">
+        <img src="${n.img}" alt="${n.title}" loading="lazy"/>
+        <div class="nov"><span class="novt">${hasOpenSea?'🌊 VIEW ON OPENSEA →':hasMarket?'VIEW ON MARKETPLACE →':'🎨 DIGITAL ARTWORK'}</span></div>
+      </div>
+      <div class="ni">
+        <h4>${n.title}</h4>
+        <div class="nm">
+          <span class="npr">${n.price||'Not listed'}</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button onclick="toggleNFTLike(event,'${trackId}')" style="background:${liked?'rgba(255,0,100,.3)':'rgba(255,0,100,.08)'};border:1px solid ${liked?'rgba(255,50,100,.7)':'rgba(255,0,100,.25)'};color:${liked?'#ff3366':'rgba(255,100,130,.5)'};padding:4px 10px;border-radius:14px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;transition:all .3s;">
+              ${liked?'♥':'♡'} <span style="font-family:Orbitron,monospace;font-size:9px">${likeCount}</span>
+            </button>
+            ${hasMarket?`<button class="nbuy" onclick="window.open('${n.link}','_blank')">${hasOpenSea?'🌊 Buy':'Buy'}</button>`:'<span style="font-size:10px;color:rgba(224,238,255,.25);font-family:Orbitron,monospace">SOON</span>'}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleNFTLike(e,trackId){
+  e.stopPropagation();
+  const fullId='nft_'+trackId;
+  if(hasLiked(fullId)){
+    likes[fullId]=Math.max(0,(likes[fullId]||1)-1);
+    userLiked[fullId]=false;
+  } else {
+    likes[fullId]=(likes[fullId]||0)+1;
+    userLiked[fullId]=true;
+  }
+  localStorage.setItem('am_likes',JSON.stringify(likes));
+  localStorage.setItem('am_userliked',JSON.stringify(userLiked));
+  // Sync to Firebase if available
+  const nftObj=nfts.find(n=>(n.id||n.img)===trackId);
+  if(fbReady && nftObj && nftObj.id){ try{ updateInFB('nfts',nftObj.id,{likes:likes[fullId]}); }catch(ex){} }
+  renderNFTs();
+}
+
+
+// ===== VIDEOS DATA =====
+let videos=JSON.parse(localStorage.getItem('am_videos')||'[]');
+let curVideoSrc='github';
+
+function selectVideoSrc(type){
+  curVideoSrc=type;
+  ['github','url'].forEach(t=>{
+    const btn=document.getElementById('vsrc-'+t);
+    const wrap=document.getElementById('vsrc-'+t+'-wrap');
+    if(btn){
+      const isA=t===type;
+      btn.style.background=isA?'rgba(0,245,255,.18)':'rgba(255,255,255,.04)';
+      btn.style.borderColor=isA?'var(--c)':'rgba(255,255,255,.1)';
+      btn.style.color=isA?'var(--c)':'rgba(224,238,255,.4)';
+    }
+    if(wrap)wrap.style.display=t===type?'block':'none';
+  });
+}
+
+function renderVideos(){
+  const g=document.getElementById('videos-grid');
+  if(!g)return;
+  if(!videos.length){
+    g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:rgba(224,238,255,.2);"><div style="font-size:40px;margin-bottom:12px">🎬</div><span style="font-family:Orbitron,monospace;font-size:12px;letter-spacing:2px;">No videos yet</span></div>';
+    return;
+  }
+  g.innerHTML=videos.map((v,i)=>{
+    const id='vid_'+(v.id||v.src);
+    const lc=getLikes(id)||0;
+    const liked=hasLiked(id);
+    return `<div style="background:var(--gl);border:1px solid var(--glb);border-radius:12px;overflow:hidden;transition:all .4s;">
+      <div style="position:relative;aspect-ratio:16/9;background:#000;cursor:pointer;" onclick="playVideo(${i})">
+        ${v.thumb?`<img src="${v.thumb}" style="width:100%;height:100%;object-fit:cover;"/>`
+          :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(255,0,0,.15),rgba(0,0,0,.8));"><span style="font-size:50px">🎬</span></div>`}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);">
+          <div style="width:60px;height:60px;background:rgba(255,0,0,.9);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;">▶</div>
+        </div>
+        <div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,.7);color:#fff;font-size:9px;padding:2px 8px;border-radius:4px;font-family:Orbitron,monospace;">VIDEO</div>
+      </div>
+      <div style="padding:14px;">
+        <h4 style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.title}</h4>
+        ${v.desc?`<p style="font-size:11px;color:rgba(224,238,255,.35);margin-bottom:10px;">${v.desc}</p>`:''}
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <button onclick="toggleVideoLike(event,${i})" style="background:${liked?'rgba(255,0,100,.3)':'rgba(255,0,100,.08)'};border:1px solid ${liked?'rgba(255,50,100,.7)':'rgba(255,0,100,.25)'};color:${liked?'#ff3366':'rgba(255,100,130,.5)'};padding:5px 12px;border-radius:14px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:5px;transition:all .3s;">
+            <span>${liked?'♥':'♡'}</span>
+            <span style="font-family:Orbitron,monospace;font-size:9px;">${lc}</span>
+          </button>
+          <button onclick="playVideo(${i})" style="background:linear-gradient(135deg,rgba(255,0,0,.2),rgba(136,0,0,.2));border:1px solid rgba(255,0,0,.3);color:#ff4444;padding:5px 12px;border-radius:6px;font-size:10px;text-decoration:none;font-family:Orbitron,monospace;cursor:pointer;">▶ WATCH</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function playVideo(i){
+  const v=videos[i];if(!v)return;
+  // Stop all music/audio first
+  stopAllPlayers();
+
+  // Remove any existing modal
+  const existing=document.getElementById('video-modal');
+  if(existing)existing.remove();
+
+  const archiveId=getArchiveOrgIdentifier(v.src);
+
+  const modal=document.createElement('div');
+  modal.id='video-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;';
+
+  modal.innerHTML=`
+    <div style="width:100%;max-width:860px;background:var(--dk2);border:1px solid var(--glb);border-radius:16px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.8);">
+
+      <!-- Header: title only, nothing about the source -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(255,0,0,.08);border-bottom:1px solid rgba(255,0,0,.15);">
+        <div style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;">${v.title}</div>
+        <button id="vm-close" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s;" onmouseover="this.style.background='rgba(255,0,0,.4)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">✕</button>
+      </div>
+
+      <!-- Video stage -->
+      <div id="vm-stage" style="position:relative;background:#000;min-height:220px;display:flex;align-items:center;justify-content:center;">
+        <div style="color:rgba(224,238,255,.4);font-family:Orbitron,monospace;font-size:11px;letter-spacing:2px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+          <div style="width:34px;height:34px;border:3px solid rgba(255,0,0,.2);border-top-color:#ff3333;border-radius:50%;animation:vmspin .9s linear infinite;"></div>
+          LOADING
+        </div>
+      </div>
+
+      <!-- Minimal professional controls: volume, play/pause, next -->
+      <div style="padding:16px 18px;background:rgba(0,0,0,.4);">
+        <div style="display:flex;align-items:center;justify-content:center;gap:26px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="vm-vol-icon" style="font-size:16px;color:rgba(224,238,255,.5);cursor:pointer;">🔊</span>
+            <input id="vm-vol" type="range" min="0" max="1" step="0.05" value="1" disabled
+              style="width:80px;height:3px;-webkit-appearance:none;background:rgba(255,255,255,.15);border-radius:2px;outline:none;cursor:pointer;"/>
+          </div>
+          <button id="vm-play" disabled style="background:linear-gradient(135deg,#ff4444,#cc0000);border:none;color:#fff;width:50px;height:50px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .3s;box-shadow:0 0 15px rgba(255,0,0,.4);opacity:.5;">▶</button>
+          <button id="vm-next" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(224,238,255,.6);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:15px;transition:all .3s;" title="Next">⏭</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  const stage=document.getElementById('vm-stage');
+  const closeBtn=document.getElementById('vm-close');
+  const nextBtn=document.getElementById('vm-next');
+  const playBtn=document.getElementById('vm-play');
+  const volIcon=document.getElementById('vm-vol-icon');
+  const volSlider=document.getElementById('vm-vol');
+
+  let vid=null;
+  let lastVolume=1;
+
+  const goNext=()=>{ const next=i<videos.length-1?i+1:0; modal.remove(); playVideo(next); };
+  nextBtn.onclick=goNext;
+
+  const closeModal=()=>{ if(vid){vid.pause();vid.src='';} modal.remove(); };
+  closeBtn.onclick=closeModal;
+  modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+  document.addEventListener('keydown',function esc(e){
+    if(e.key==='Escape'){closeModal();document.removeEventListener('keydown',esc);}
+  });
+
+  function mountVideo(src){
+    stage.innerHTML=`<video id="vm-video" src="${src}" style="width:100%;max-height:65vh;display:block;outline:none;" playsinline preload="metadata"></video>`;
+    vid=document.getElementById('vm-video');
+
+    playBtn.disabled=false;playBtn.style.opacity='1';
+    volSlider.disabled=false;
+
+    vid.play().catch(()=>{});
+
+    playBtn.onclick=()=>{
+      if(vid.paused){vid.play();playBtn.textContent='⏸';}
+      else{vid.pause();playBtn.textContent='▶';}
+    };
+    vid.onplay=()=>playBtn.textContent='⏸';
+    vid.onpause=()=>playBtn.textContent='▶';
+    vid.onended=goNext;
+
+    volSlider.oninput=()=>{
+      vid.volume=parseFloat(volSlider.value);
+      lastVolume=vid.volume||lastVolume;
+      volIcon.textContent=vid.volume==0?'🔇':(vid.volume<0.5?'🔉':'🔊');
+    };
+    volIcon.onclick=()=>{
+      if(vid.volume>0){lastVolume=vid.volume;vid.volume=0;volSlider.value=0;volIcon.textContent='🔇';}
+      else{vid.volume=lastVolume||1;volSlider.value=vid.volume;volIcon.textContent=vid.volume<0.5?'🔉':'🔊';}
+    };
+  }
+
+  function showError(){
+    stage.innerHTML='<div style="color:rgba(224,238,255,.4);font-family:Orbitron,monospace;font-size:11px;letter-spacing:1px;text-align:center;padding:24px;">تعذر تشغيل هذا الفيديو حاليًا</div>';
+  }
+
+  // Probe a candidate URL by trying to load it in an offscreen <video> —
+  // this works even when the metadata API is blocked by CORS, since
+  // playing a cross-origin video file doesn't require CORS headers.
+  function probeUrl(url){
+    return new Promise(resolve=>{
+      const probe=document.createElement('video');
+      probe.preload='metadata';
+      const cleanup=ok=>{ probe.onloadedmetadata=null; probe.onerror=null; resolve(ok); };
+      probe.onloadedmetadata=()=>cleanup(true);
+      probe.onerror=()=>cleanup(false);
+      probe.src=url;
+    });
+  }
+
+  if(archiveId){
+    const guesses=[
+      'https://archive.org/download/'+archiveId+'/'+archiveId+'.mp4',
+      'https://archive.org/download/'+archiveId+'/'+archiveId+'_512kb.mp4'
+    ];
+    let resolved=null;
+    for(const g of guesses){
+      if(await probeUrl(g)){ resolved=g; break; }
+    }
+    if(!resolved) resolved=await resolveArchiveDirectUrl(archiveId);
+    if(document.getElementById('video-modal')!==modal) return; // modal was closed/replaced while loading
+    if(resolved) mountVideo(resolved); else showError();
+  }else{
+    mountVideo(v.src);
+  }
+}
+
+
+function toggleVideoLike(e,i){
+  if(e){e.stopPropagation();e.preventDefault();}
+  const v=videos[i];
+  if(!v)return;
+  const id='vid_'+(v.id||v.src);
+  if(hasLiked(id)){likes[id]=Math.max(0,(likes[id]||1)-1);userLiked[id]=false;}
+  else{likes[id]=(likes[id]||0)+1;userLiked[id]=true;}
+  localStorage.setItem('am_likes',JSON.stringify(likes));
+  localStorage.setItem('am_userliked',JSON.stringify(userLiked));
+  // Sync to Firebase if available
+  if(fbReady && v.id){ try{ updateInFB('videos',v.id,{likes:likes[id]}); }catch(ex){} }
+  // Update modal like button if open
+  const vmLike=document.getElementById('vm-like');
+  if(vmLike){
+    const liked2=hasLiked(id);const cnt2=getLikes(id);
+    vmLike.style.background=liked2?'rgba(255,0,100,.3)':'rgba(255,0,100,.08)';
+    vmLike.style.borderColor=liked2?'rgba(255,50,100,.7)':'rgba(255,0,100,.25)';
+    vmLike.style.color=liked2?'#ff3366':'rgba(255,100,130,.5)';
+    const spans=vmLike.querySelectorAll('span');
+    if(spans[0])spans[0].textContent=liked2?'♥':'♡';
+    if(spans[1])spans[1].textContent=cnt2;
+  }
+  renderVideos();
+}
+
+async function addVideo(){
+  if(!checkAuth())return;
+  const title=(document.getElementById('nv-title')||{value:''}).value.trim();
+  if(!title){toast('Title required','err');return;}
+  const desc=(document.getElementById('nv-desc')||{value:''}).value.trim();
+  let src='';
+  if(curVideoSrc==='github'){
+    src=(document.getElementById('nv-github')||{value:''}).value.trim();
+  } else {
+    src=(document.getElementById('nv-url')||{value:''}).value.trim();
+  }
+  if(!src){toast('Please add a video URL','err');return;}
+  const thumbFile=document.getElementById('nv-thumb')&&document.getElementById('nv-thumb').files[0];
+  const thumbUrl=(document.getElementById('nv-thumb-url')||{value:''}).value.trim();
+  let thumb='';
+  if(thumbFile){const r=new FileReader();thumb=await new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(thumbFile);});}
+  else if(thumbUrl)thumb=thumbUrl;
+  const data={title,desc,src,thumb,likes:0};
+  try{
+    const id=await saveToFB('videos',data);
+    data.id=id;videos.push(data);
+    localStorage.setItem('am_videos',JSON.stringify(videos));
+    renderVideos();renderVideosTbl();
+    ['nv-title','nv-desc','nv-github','nv-url','nv-thumb-url'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const tf=document.getElementById('nv-thumb');if(tf)tf.value='';
+    const tp=document.getElementById('nv-thumb-pv');if(tp)tp.src='';
+    toast('✅ Video added!','ok2');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function editVideo(i){
+  const v=videos[i];
+  openEM(`<h3>✏ Edit Video</h3>
+    <div class="fg"><label>Title</label><input id="ev-t" value="${v.title}"/></div>
+    <div class="fg"><label>Description</label><input id="ev-d" value="${v.desc||''}"/></div>
+    <div class="fg"><label>Video URL (GitHub or direct link)</label>
+      <input id="ev-src" value="${v.src||''}" placeholder="https://github.com/.../releases/download/..." style="direction:ltr;font-size:11px;"/>
+    </div>
+    <div class="fg"><label>Thumbnail URL (optional)</label>
+      <input id="ev-thumb" value="${v.thumb&&!v.thumb.startsWith('data:')?v.thumb:''}" placeholder="https://..."/>
+      ${v.thumb?`<img src="${v.thumb}" style="width:80px;height:50px;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--glb);"/>`:''}
+    </div>
+    <div class="em-btns">
+      <button class="em-save" onclick="saveVideo(${i})">💾 Save</button>
+      <button class="em-cancel" onclick="closeEM()">Cancel</button>
+    </div>`);
+}
+
+async function saveVideo(i){
+  const title=document.getElementById('ev-t').value.trim();
+  if(!title){toast('Title required','err');return;}
+  const desc=document.getElementById('ev-d').value.trim();
+  const src=document.getElementById('ev-src').value.trim();
+  const thumb=document.getElementById('ev-thumb').value.trim();
+  if(!src){toast('Video URL required','err');return;}
+  const data={title,desc,src,thumb:thumb||videos[i].thumb||''};
+  try{
+    if(videos[i].id&&fbReady)await updateInFB('videos',videos[i].id,data);
+    videos[i]={...videos[i],...data};
+    localStorage.setItem('am_videos',JSON.stringify(videos));
+    renderVideos();renderVideosTbl();
+    closeEM();
+    toast('✅ Video updated!','ok2');
+  }catch(e){toast('❌ Error: '+e.message,'err');}
+}
+
+async function delVideo(i){
+  if(!checkAuth())return;
+  if(!confirm('Delete this video?'))return;
+  const v=videos[i];
+  if(v.id&&fbReady)await deleteFromFB('videos',v.id);
+  videos.splice(i,1);
+  localStorage.setItem('am_videos',JSON.stringify(videos));
+  renderVideos();renderVideosTbl();
+  toast('🗑 Video deleted');
+}
+
+function renderVideosTbl(){
+  const d=document.getElementById('videos-tbl');
+  if(!d)return;
+  if(!videos.length){d.innerHTML='<p style="color:rgba(224,238,255,.2);font-size:12px;padding:8px">No videos yet</p>';return;}
+  d.innerHTML=`<table class="itbl"><thead><tr><th>#</th><th>Thumb</th><th>Title</th><th>Actions</th></tr></thead><tbody>${videos.map((v,i)=>`
+    <tr>
+      <td style="font-family:Orbitron,monospace;font-size:11px;color:rgba(0,245,255,.4)">${i+1}</td>
+      <td>${v.thumb?`<img src="${v.thumb}" style="width:50px;height:30px;object-fit:cover;border-radius:4px;border:1px solid var(--glb);"/>`:'<div style="width:50px;height:30px;background:rgba(255,0,0,.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>'}</td>
+      <td style="font-weight:600">${v.title}</td>
+      <td><div class="taw">
+        <button class="tp" onclick="playVideo(${i})">▶</button>
+        <button class="te" onclick="editVideo(${i})">✏</button>
+        <button class="td" onclick="delVideo(${i})">🗑</button>
+      </div></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+const CHI={yt:'▶',sc:'☁',sp:'◎',ig:'◈',tt:'♪',tw:'𝕏',fb:'f',wa:'💬',tg:'✈',other:'🌐'};
+
+function renderChannels(){
+  const g=document.getElementById('ch-grid');
+  if(!channels.length){g.innerHTML='<div style="padding:40px;color:rgba(224,238,255,.18);font-size:13px;text-align:center">No channels yet</div>';return;}
+  g.innerHTML=channels.map(ch=>`<a href="${ch.url}" target="_blank" class="chc"><div class="chi ${ch.type}">${CHI[ch.type]||'◉'}</div><h4>${ch.name}</h4><p>${ch.desc||''}</p><div class="cha">→</div></a>`).join('');
+}
+function renderAll(){renderPlaylist();renderCovers();renderNFTs();renderChannels();if(typeof renderVideos==='function')renderVideos();}
+
+// ===== ADMIN TABLES =====
+function renderTbls(){renderTrackTbl();renderCoverTbl();renderNFTTbl();if(typeof renderVideosTbl==='function')renderVideosTbl();renderChTbl();}
+function renderTrackTbl(){
+  const d=document.getElementById('tracks-tbl');
+  if(!tracks.length){d.innerHTML='<p style="color:rgba(224,238,255,.2);font-size:12px;padding:8px">No tracks yet</p>';return;}
+  d.innerHTML=`<table class="itbl"><thead><tr><th>#</th><th>Type</th><th>Title</th><th>Artist</th><th>❤ Likes</th><th>Actions</th></tr></thead><tbody>${tracks.map((t,i)=>{
+    const trackId=t.id||t.src;
+    const likeCount=t.likes||getLikes(trackId)||0;
+    const typeBadge=isYT(t)?'<span style="background:rgba(255,0,0,.2);color:#ff4444;padding:1px 7px;border-radius:8px;font-size:9px;font-family:Orbitron,monospace">YT</span>'
+      :isSC(t)?'<span style="background:rgba(255,85,0,.2);color:#ff5500;padding:1px 7px;border-radius:8px;font-size:9px;font-family:Orbitron,monospace">SC</span>'
+      :'<span style="background:rgba(0,245,255,.1);color:var(--c);padding:1px 7px;border-radius:8px;font-size:9px;font-family:Orbitron,monospace">MP3</span>';
+    const coverHtml=isMP3(t)?`<img src="${t.cover||IMGS.h1}" style="width:38px;height:38px;object-fit:cover;border-radius:4px;border:1px solid var(--glb);"/>`
+      :`<div style="width:38px;height:38px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;background:${isYT(t)?'rgba(255,0,0,.1)':'rgba(255,85,0,.1)'}">${isYT(t)?'▶':'☁'}</div>`;
+    return `<tr>
+      <td style="font-family:Orbitron,monospace;font-size:11px;color:rgba(0,245,255,.4)">${i+1}</td>
+      <td>${typeBadge}</td>
+      <td style="font-weight:600">${t.title}</td>
+      <td>${t.artist||'—'}</td>
+      <td style="color:#ff3366;font-family:Orbitron,monospace;font-size:11px">${likeCount>0?'♥ '+likeCount:'—'}</td>
+      <td><div class="taw">
+        <button class="tp" onclick="playT(${i})">▶</button>
+        <button class="te" onclick="editTrack(${i})">✏</button>
+        <button class="td" onclick="delTrack(${i})">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function renderCoverTbl(){
+  const d=document.getElementById('covers-tbl');
+  if(!covers.length){d.innerHTML='<p style="color:rgba(224,238,255,.2);font-size:12px;padding:8px">No covers</p>';return;}
+  d.innerHTML=`<table class="itbl"><thead><tr><th>#</th><th>Img</th><th>Title</th><th>Artist</th><th>Actions</th></tr></thead><tbody>${covers.map((c,i)=>`<tr><td style="font-family:Orbitron,monospace;font-size:11px;color:rgba(0,245,255,.4)">${i+1}</td><td><img src="${c.img}"/></td><td style="font-weight:600">${c.title}</td><td>${c.artist||'—'}</td><td><div class="taw"><button class="te" onclick="editCover(${i})">✏</button><button class="td" onclick="delCover(${i})">🗑</button></div></td></tr>`).join('')}</tbody></table>`;
+}
+function renderNFTTbl(){
+  const d=document.getElementById('nft-tbl');
+  if(!nfts.length){d.innerHTML='<p style="color:rgba(224,238,255,.2);font-size:12px;padding:8px">No NFTs yet</p>';return;}
+  const catLabels={art:'🎨 Art',music:'🎵 Music',limited:'⭐ Limited'};
+  d.innerHTML=`<table class="itbl"><thead><tr><th>#</th><th>Image</th><th>Title</th><th>Category</th><th>Price</th><th>OpenSea</th><th>Actions</th></tr></thead><tbody>${nfts.map((n,i)=>{
+    const cat=n.cat||'art';
+    const hasLink=n.link&&n.link.trim();
+    const isOS=hasLink&&n.link.includes('opensea.io');
+    return `<tr>
+      <td style="font-family:Orbitron,monospace;font-size:11px;color:rgba(0,245,255,.4)">${i+1}</td>
+      <td><img src="${n.img}" style="width:38px;height:38px;object-fit:cover;border-radius:4px;border:1px solid var(--glb);"/></td>
+      <td style="font-weight:600">${n.title}</td>
+      <td style="font-size:11px">${catLabels[cat]||cat}</td>
+      <td style="color:var(--c);font-family:Orbitron,monospace;font-size:11px">${n.price||'—'}</td>
+      <td>${hasLink?`<a href="${n.link}" target="_blank" style="font-size:10px;color:${isOS?'#2081e2':'var(--c)'};text-decoration:none;">${isOS?'🌊 OpenSea':'🔗 Link'}</a>`:'<span style="font-size:10px;color:rgba(224,238,255,.2)">—</span>'}</td>
+      <td><div class="taw">
+        <button class="te" onclick="editNFT(${i})">✏</button>
+        <button class="td" onclick="delNFT(${i})">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function renderChTbl(){
+  const d=document.getElementById('ch-tbl');
+  if(!channels.length){d.innerHTML='<p style="color:rgba(224,238,255,.2);font-size:12px;padding:8px">No channels yet</p>';return;}
+  const platformColors={yt:'255,0,0',fb:'24,119,242',ig:'225,48,108',tt:'255,0,80',sc:'255,85,0',sp:'29,185,84',tw:'29,161,242',wa:'37,211,102',tg:'0,136,204',other:'100,100,100'};
+  d.innerHTML=`<table class="itbl"><thead><tr><th>#</th><th>Platform</th><th>Name</th><th>URL</th><th>Actions</th></tr></thead><tbody>${channels.map((ch,i)=>{
+    const c=platformColors[ch.type]||'0,245,255';
+    return `<tr>
+      <td style="font-family:Orbitron,monospace;font-size:11px;color:rgba(0,245,255,.4)">${i+1}</td>
+      <td><span style="background:rgba(${c},.15);color:rgba(${c},1);border:1px solid rgba(${c},.3);padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;">${CHI[ch.type]||'🌐'} ${ch.type.toUpperCase()}</span></td>
+      <td style="font-weight:600">${ch.name}</td>
+      <td style="font-size:11px;color:rgba(0,245,255,.5);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><a href="${ch.url}" target="_blank" style="color:rgba(0,245,255,.6);text-decoration:none;">${ch.url}</a></td>
+      <td><div class="taw">
+        <button class="te" onclick="editCh(${i})">✏</button>
+        <button class="td" onclick="delCh(${i})">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+
+function renderVideosTbl(){
+  const d=document.getElementById('videos-tbl');
+  if(!d)return;
+  if(!videos.length){d.innerHTML='<p style="color:rgba(224,238,255,.2);font-size:12px;padding:8px">No videos yet</p>';return;}
+  d.innerHTML=`<table class="itbl"><thead><tr><th>#</th><th>Thumb</th><th>Title</th><th>Actions</th></tr></thead><tbody>${videos.map((v,i)=>`
+    <tr>
+      <td style="font-family:Orbitron,monospace;font-size:11px;color:rgba(0,245,255,.4)">${i+1}</td>
+      <td>${v.thumb?`<img src="${v.thumb}" style="width:50px;height:30px;object-fit:cover;border-radius:4px;border:1px solid var(--glb);"/>`:'<div style="width:50px;height:30px;background:rgba(255,0,0,.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>'}</td>
+      <td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.title}</td>
+      <td><div class="taw">
+        <button class="tp" onclick="playVideo(${i})">▶</button>
+        <button class="te" onclick="editVideo(${i})">✏</button>
+        <button class="td" onclick="delVideo(${i})">🗑</button>
+      </div></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+async function loadVideosFromFirebase(){
+  if(!fbReady)return;
+  try{
+    const {collection,getDocs,query,orderBy}=fns;
+    const snap=await getDocs(query(collection(db,'videos'),orderBy('order','asc'))).catch(()=>getDocs(collection(db,'videos')));
+    videos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderVideos();
+  }catch(e){
+    videos=JSON.parse(localStorage.getItem('am_videos')||'[]');
+    renderVideos();
+  }
+}
+
+async function addTrack(){
+  if(!checkAuth())return;
+  const title=(document.getElementById('nt-t')||{value:''}).value.trim();
+  if(!title){toast('Title required','err');return;}
+  const artist=(document.getElementById('nt-a')||{value:''}).value.trim();
+  let src='';
+  let trackType='mp3';
+
+  if(curSrcType==='yt'){
+    const ytUrl=(document.getElementById('nt-yt')||{value:''}).value.trim();
+    if(!ytUrl||!ytVideoId(ytUrl)){toast('Please paste a valid YouTube link','err');return;}
+    src=ytUrl;trackType='youtube';
+  } else if(curSrcType==='sc'){
+    const scUrl=(document.getElementById('nt-sc')||{value:''}).value.trim();
+    if(!scUrl||!scUrl.includes('soundcloud.com')){toast('Please paste a valid SoundCloud link','err');return;}
+    src=scUrl;trackType='soundcloud';
+  } else {
+    const mp3Url=(document.getElementById('nt-mp3-url')||{value:''}).value.trim();
+    const mp3File=document.getElementById('nt-mp3')&&document.getElementById('nt-mp3').files[0];
+    if(mp3Url){
+      src=mp3Url;trackType='mp3';
+    } else if(mp3File){
+      const r=new FileReader();
+      src=await new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(mp3File);});
+      trackType='mp3';
+    } else {
+      toast('Add a URL or upload an MP3 file','err');return;
+    }
+  }
+
+  const btn=document.getElementById('add-track-btn');
+  const prog=document.getElementById('up-progf');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  if(prog)prog.style.width='50%';
+
+  const imgF=document.getElementById('nt-img')&&document.getElementById('nt-img').files[0];
+  let cover='';
+  if(imgF){
+    const r=new FileReader();
+    cover=await new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(imgF);});
+  }
+  if(prog)prog.style.width='80%';
+
+  const data={title,artist,src,cover,trackType,likes:0};
+  try{
+    const id=await saveToFB('tracks',data);
+    data.id=id;
+    tracks.push(data);
+    localStorage.setItem('am_tracks',JSON.stringify(tracks));
+    if(prog)prog.style.width='100%';
+    renderPlaylist();renderTrackTbl();
+    // Clear inputs
+    ['nt-t','nt-a','nt-yt','nt-sc','nt-mp3-url'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.value='';
+    });
+    const mp3f=document.getElementById('nt-mp3');if(mp3f)mp3f.value='';
+    const imgf=document.getElementById('nt-img');if(imgf)imgf.value='';
+    const pv=document.getElementById('nt-pv');if(pv)pv.src='';
+    const mn=document.getElementById('mp3n');if(mn)mn.textContent='';
+    toast('✅ Track added!','ok2');
+  }catch(e){
+    toast('❌ Error: '+e.message,'err');
+    console.error('addTrack error:',e);
+  }
+  setTimeout(()=>{
+    if(prog)prog.style.width='0%';
+    if(btn){btn.disabled=false;btn.textContent='+ Add Track';}
+  },600);
+}
+
+async function addCover(){if(!checkAuth())return;
+  const title=document.getElementById('nc-t').value.trim();
+  if(!title){toast('Title required','err');return;}
+  const fi=document.getElementById('nc-img').files[0];
+  const ui=document.getElementById('nc-iu').value.trim();
+  let img='';
+  if(fi)img=await uploadFile(fi,'covers');
+  else if(ui)img=ui;
+  if(!img){toast('Please add an image','err');return;}
+  const data={title,artist:document.getElementById('nc-a').value.trim(),link:document.getElementById('nc-l').value.trim(),img};
+  const id=await saveToFB('covers',data);data.id=id;covers.push(data);
+  if(!fbReady)localStorage.setItem('am_covers',JSON.stringify(covers));
+  renderCovers();renderCoverTbl();
+  ['nc-t','nc-a','nc-l','nc-iu'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('nc-img').value='';document.getElementById('nc-pv').src='';
+  toast('✅ Cover added!','ok2');
+}
+
+async function addNFT(){if(!checkAuth())return;
+  const title=document.getElementById('nn-t').value.trim();
+  if(!title){toast('Title required','err');return;}
+  const price=document.getElementById('nn-p').value.trim();
+  const link=document.getElementById('nn-l').value.trim();
+  const cat=document.getElementById('nn-cat').value;
+
+  // Get image from selected source
+  let img='';
+  if(curNFTSrc==='github'){
+    img=(document.getElementById('nn-github')||{value:''}).value.trim();
+  } else if(curNFTSrc==='url'){
+    img=(document.getElementById('nn-imgurl')||{value:''}).value.trim();
+  } else {
+    const fi=document.getElementById('nn-img').files[0];
+    if(fi){
+      const r=new FileReader();
+      img=await new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(fi);});
+    }
+  }
+  if(!img){toast('Please add an image (GitHub URL, any URL, or upload file)','err');return;}
+
+  const data={title,price,link,img,cat,likes:0};
+  try{
+    const id=await saveToFB('nfts',data);
+    data.id=id;nfts.push(data);
+    if(!fbReady){const arr=JSON.parse(localStorage.getItem('am_nfts')||'[]');arr.push(data);localStorage.setItem('am_nfts',JSON.stringify(arr));}
+    renderNFTs();renderNFTTbl();
+    // Clear form
+    ['nn-t','nn-p','nn-l','nn-github','nn-imgurl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const fi=document.getElementById('nn-img');if(fi)fi.value='';
+    const pv=document.getElementById('nn-pv');if(pv)pv.src='';
+    toast('✅ NFT added to gallery!','ok2');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+let curNFTSrc='github';
+function selectNFTSrc(type){
+  curNFTSrc=type;
+  ['github','url','upload'].forEach(t=>{
+    const btn=document.getElementById('nft-src-'+t);
+    const wrap=document.getElementById('nft-src-'+t+'-wrap');
+    if(btn){
+      const isA=t===type;
+      btn.style.background=isA?'rgba(0,245,255,.18)':'rgba(255,255,255,.04)';
+      btn.style.borderColor=isA?'var(--c)':'rgba(255,255,255,.1)';
+      btn.style.color=isA?'var(--c)':'rgba(224,238,255,.4)';
+    }
+    if(wrap)wrap.style.display=t===type?'block':'none';
+  });
+}
+
+function quickCh(name, type, desc){
+  const nameEl=document.getElementById('nch-n');
+  const typeEl=document.getElementById('nch-t');
+  const descEl=document.getElementById('nch-d');
+  const urlEl=document.getElementById('nch-u');
+  if(nameEl)nameEl.value=name;
+  if(typeEl)typeEl.value=type;
+  if(descEl)descEl.value=desc;
+  if(urlEl){urlEl.value='';urlEl.focus();}
+  // Scroll to URL input
+  urlEl.scrollIntoView({behavior:'smooth',block:'center'});
+  toast('✏ Now paste your '+name+' URL below','ok2');
+}
+
+async function addCh(){
+  if(!checkAuth())return;
+  const name=document.getElementById('nch-n').value.trim();
+  const url=document.getElementById('nch-u').value.trim();
+  if(!name){toast('Please enter platform name','err');return;}
+  if(!url){toast('Please enter channel URL','err');return;}
+  const desc=document.getElementById('nch-d').value.trim();
+  const type=document.getElementById('nch-t').value;
+  const data={name,url,desc,type};
+  try{
+    const id=await saveToFB('channels',data);
+    data.id=id;
+    channels.push(data);
+    // Always save locally as backup
+    localStorage.setItem('am_channels',JSON.stringify(channels));
+    renderChannels();
+    renderChTbl();
+    // Clear fields
+    ['nch-n','nch-u','nch-d'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.value='';
+    });
+    toast('✅ Channel added!','ok2');
+  }catch(e){
+    toast('❌ Error: '+e.message,'err');
+    console.error('addCh error:',e);
+  }
+}
+
+// ===== DELETE =====
+async function delTrack(i){if(!checkAuth())return;if(!confirm('Delete this track?'))return;const t=tracks[i];if(t.id&&fbReady)await deleteFromFB('tracks',t.id);tracks.splice(i,1);if(!fbReady)localStorage.setItem('am_tracks',JSON.stringify(tracks));if(curIdx===i){aud.pause();playing=false;curIdx=-1;(function(){var _b=document.getElementById('mp_playbtn');if(_b)_b.innerHTML='▶';})();}renderPlaylist();renderTrackTbl();toast('🗑 Track deleted');}
+async function delCover(i){if(!checkAuth())return;if(!confirm('Delete?'))return;const c=covers[i];if(c.id&&fbReady)await deleteFromFB('covers',c.id);covers.splice(i,1);if(!fbReady)localStorage.setItem('am_covers',JSON.stringify(covers));renderCovers();renderCoverTbl();toast('🗑 Cover deleted');}
+async function delNFT(i){if(!checkAuth())return;if(!confirm('Delete?'))return;const n=nfts[i];if(n.id&&fbReady)await deleteFromFB('nfts',n.id);nfts.splice(i,1);if(!fbReady)localStorage.setItem('am_nfts',JSON.stringify(nfts));renderNFTs();renderNFTTbl();toast('🗑 NFT deleted');}
+async function delCh(i){if(!checkAuth())return;if(!confirm('Delete?'))return;const ch=channels[i];if(ch.id&&fbReady)await deleteFromFB('channels',ch.id);channels.splice(i,1);if(!fbReady)localStorage.setItem('am_channels',JSON.stringify(channels));renderChannels();renderChTbl();toast('🗑 Channel deleted');}
+
+// ===== EDIT MODALS =====
+function openEM(h){document.getElementById('em-content').innerHTML=h;document.getElementById('edit-modal').classList.add('on');}
+function closeEM(){document.getElementById('edit-modal').classList.remove('on');}
+function editTrack(i){
+  const t=tracks[i];
+  const srcField = isYT(t)
+    ? `<div class="fg"><label style="color:#ff4444">YouTube Link</label><input id="et-src" value="${t.src||''}" style="background:rgba(255,0,0,.06);border-color:rgba(255,0,0,.3);"/></div>`
+    : isSC(t)
+    ? `<div class="fg"><label style="color:#ff5500">SoundCloud Link</label><input id="et-src" value="${t.src||''}" style="background:rgba(255,85,0,.06);border-color:rgba(255,85,0,.3);"/></div>`
+    : `<div class="fg"><label>New Cover Image</label><div class="uz" style="padding:14px"><input type="file" id="et-img" accept="image/*" onchange="onImg(this,'et-pv')"/><div class="ui" style="font-size:20px">🖼</div><p>Upload new cover</p></div><img id="et-pv" class="uprev" src="${t.cover||''}"/></div>`;
+  const typeBadge = isYT(t)?'<span style="background:rgba(255,0,0,.2);color:#ff4444;padding:2px 8px;border-radius:10px;font-size:10px;font-family:Orbitron,monospace">▶ YouTube</span>'
+    : isSC(t)?'<span style="background:rgba(255,85,0,.2);color:#ff5500;padding:2px 8px;border-radius:10px;font-size:10px;font-family:Orbitron,monospace">☁ SoundCloud</span>'
+    : '<span style="background:rgba(0,245,255,.1);color:var(--c);padding:2px 8px;border-radius:10px;font-size:10px;font-family:Orbitron,monospace">🎵 MP3</span>';
+  openEM(`<h3>✏ Edit Track ${typeBadge}</h3>
+    <div class="fg"><label>Title</label><input id="et-t" value="${t.title}"/></div>
+    <div class="fg"><label>Artist</label><input id="et-a" value="${t.artist||''}"/></div>
+    ${srcField}
+    <div class="em-btns"><button class="em-save" onclick="saveTrack(${i})">💾 Save</button><button class="em-cancel" onclick="closeEM()">Cancel</button></div>`);
+}
+
+async function saveTrack(i){
+  const title=document.getElementById('et-t').value.trim();
+  if(!title){toast('Title required','err');return;}
+  const artist=document.getElementById('et-a').value.trim();
+  let data={title,artist};
+  const t=tracks[i];
+  if(isYT(t)||isSC(t)){
+    const srcEl=document.getElementById('et-src');
+    if(srcEl&&srcEl.value.trim())data.src=srcEl.value.trim();
+  } else {
+    const fi=document.getElementById('et-img')&&document.getElementById('et-img').files[0];
+    let cover=t.cover;
+    if(fi)cover=await uploadFile(fi,'covers');
+    data.cover=cover;
+  }
+  if(t.id&&fbReady)await updateInFB('tracks',t.id,data);
+  tracks[i]={...t,...data};
+  if(!fbReady)localStorage.setItem('am_tracks',JSON.stringify(tracks));
+  renderPlaylist();renderTrackTbl();closeEM();toast('✅ Track updated!','ok2');
+}
+
+function editCover(i){const c=covers[i];openEM(`<h3>✏ Edit Cover</h3><div class="fg"><label>Title</label><input id="ec-t" value="${c.title}"/></div><div class="fg"><label>Artist</label><input id="ec-a" value="${c.artist||''}"/></div><div class="fg"><label>Link</label><input id="ec-l" value="${c.link||''}"/></div><div class="fg"><label>New Image</label><div class="uz"><input type="file" id="ec-img" accept="image/*" onchange="onImg(this,'ec-pv')"/><div class="ui">🖼</div><p>Upload new image</p></div><img id="ec-pv" class="uprev" src="${c.img}"/><input id="ec-iu" value="${c.img.startsWith('data:')||c.img.startsWith('http')?'':c.img}" placeholder="Or URL" style="width:100%;margin-top:6px;background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:9px;color:#e0eeff;font-size:12px;outline:none;"/></div><div class="em-btns"><button class="em-save" onclick="saveCover(${i})">💾 Save</button><button class="em-cancel" onclick="closeEM()">Cancel</button></div>`);}
+async function saveCover(i){
+  const title=document.getElementById('ec-t').value.trim();if(!title)return;
+  const fi=document.getElementById('ec-img').files[0];const ui=document.getElementById('ec-iu').value.trim();
+  let img=covers[i].img;
+  if(fi)img=await uploadFile(fi,'covers');else if(ui)img=ui;
+  const data={title,artist:document.getElementById('ec-a').value.trim(),link:document.getElementById('ec-l').value.trim(),img};
+  if(covers[i].id&&fbReady)await updateInFB('covers',covers[i].id,data);
+  covers[i]={...covers[i],...data};if(!fbReady)localStorage.setItem('am_covers',JSON.stringify(covers));
+  renderCovers();renderCoverTbl();closeEM();toast('✅ Cover updated!','ok2');
+}
+function editNFT(i){
+  const n=nfts[i];
+  const cat=n.cat||'art';
+  openEM(`<h3>✏ Edit NFT</h3>
+    <div class="fg"><label>Title</label><input id="en-t" value="${n.title}"/></div>
+    <div class="fg"><label>Price</label><input id="en-p" value="${n.price||''}"/></div>
+    <div class="fg"><label>Category</label>
+      <select id="en-cat" style="background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:10px;color:#e0eeff;width:100%;outline:none;">
+        <option value="art"${cat==='art'?' selected':''}>🎨 Art</option>
+        <option value="music"${cat==='music'?' selected':''}>🎵 Music</option>
+        <option value="limited"${cat==='limited'?' selected':''}>⭐ Limited Edition</option>
+      </select>
+    </div>
+    <div class="fg"><label style="color:#2081e2">🌊 OpenSea / Marketplace Link</label>
+      <input id="en-l" value="${n.link||''}" placeholder="https://opensea.io/assets/..."/>
+    </div>
+    <div class="fg"><label>Image — GitHub Releases URL or any URL</label>
+      <input id="en-imgurl" value="${n.img.startsWith('data:')?'':n.img}" placeholder="https://github.com/.../releases/download/v1.0/image.jpg"/>
+      <div style="margin-top:8px;font-size:10px;color:rgba(0,245,255,.4)">Or upload new image:</div>
+      <div class="uz" style="padding:12px;margin-top:6px"><input type="file" id="en-img" accept="image/*" onchange="onImg(this,'en-pv')"/><div style="font-size:18px">🖼</div><p>Upload new image</p></div>
+      <img id="en-pv" class="uprev" src="${n.img.startsWith('data:')?n.img:''}"/>
+    </div>
+    <div class="em-btns">
+      <button class="em-save" onclick="saveNFT(${i})">💾 Save</button>
+      <button class="em-cancel" onclick="closeEM()">Cancel</button>
+    </div>`);
+}
+
+async function saveNFT(i){
+  const title=document.getElementById('en-t').value.trim();
+  if(!title){toast('Title required','err');return;}
+  const fi=document.getElementById('en-img').files[0];
+  const ui=document.getElementById('en-imgurl').value.trim();
+  let img=nfts[i].img;
+  if(fi){const r=new FileReader();img=await new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(fi);});}
+  else if(ui)img=ui;
+  const data={
+    title,
+    price:document.getElementById('en-p').value.trim(),
+    link:document.getElementById('en-l').value.trim(),
+    cat:document.getElementById('en-cat').value,
+    img
+  };
+  if(nfts[i].id&&fbReady)await updateInFB('nfts',nfts[i].id,data);
+  nfts[i]={...nfts[i],...data};
+  if(!fbReady)localStorage.setItem('am_nfts',JSON.stringify(nfts));
+  renderNFTs();renderNFTTbl();closeEM();toast('✅ NFT updated!','ok2');
+}
+
+function editCh(i){const ch=channels[i];openEM(`<h3>✏ Edit Channel</h3><div class="fg"><label>Name</label><input id="ech-n" value="${ch.name}"/></div><div class="fg"><label>URL</label><input id="ech-u" value="${ch.url}"/></div><div class="fg"><label>Description</label><input id="ech-d" value="${ch.desc||''}"/></div><div class="fg"><label>Type</label><select id="ech-t" style="background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);border-radius:6px;padding:10px;color:#e0eeff;width:100%;outline:none;">${['yt','sc','sp','ig','tt','tw'].map(v=>`<option value="${v}"${ch.type===v?' selected':''}>${{yt:'YouTube',sc:'SoundCloud',sp:'Spotify',ig:'Instagram',tt:'TikTok',tw:'Twitter/X'}[v]}</option>`).join('')}</select></div><div class="em-btns"><button class="em-save" onclick="saveCh(${i})">💾 Save</button><button class="em-cancel" onclick="closeEM()">Cancel</button></div>`);}
+async function saveCh(i){
+  const name=document.getElementById('ech-n').value.trim();const url=document.getElementById('ech-u').value.trim();if(!name||!url)return;
+  const data={name,url,desc:document.getElementById('ech-d').value.trim(),type:document.getElementById('ech-t').value};
+  if(channels[i].id&&fbReady)await updateInFB('channels',channels[i].id,data);
+  channels[i]={...channels[i],...data};if(!fbReady)localStorage.setItem('am_channels',JSON.stringify(channels));
+  renderChannels();renderChTbl();closeEM();toast('✅ Channel updated!','ok2');
+}
+
+// ===== SETTINGS =====
+function saveSettings(){settings.email=document.getElementById('st-e').value.trim();settings.name=document.getElementById('st-n').value.trim();localStorage.setItem('am_settings',JSON.stringify(settings));if(settings.email){const a=document.getElementById('ct-email');if(a){a.href='mailto:'+settings.email;a.textContent='✉ '+settings.email;}}toast('✅ Settings saved!','ok2');}
+function changePw(){
+  toast('📧 Use the reset email button below','ok2');
+}
+
+async function resetPasswordFromSettings(){
+  const emailEl=document.getElementById('reset-email-ap');
+  const email=(emailEl?emailEl.value:'').trim()||
+               (window.fbUser?window.fbUser.email:'');
+  if(!email){toast('Please enter your email','err');return;}
+  if(!window.fbAuth||!window.fbFns.sendPasswordResetEmail){toast('Firebase not ready','err');return;}
+  try{
+    await window.fbFns.sendPasswordResetEmail(window.fbAuth, email);
+    toast('✅ Reset email sent to '+email+'!','ok2');
+    if(emailEl)emailEl.value='';
+  }catch(e){
+    const msg=e.code==='auth/user-not-found'?'Email not found':
+              e.code==='auth/invalid-email'?'Invalid email':e.message;
+    toast('❌ '+msg,'err');
+  }
+}
+function clearAll(){if(!confirm('⚠ Delete ALL data?'))return;if(!confirm('Really? Cannot be undone!'))return;['am_tracks','am_covers','am_nfts','am_channels','am_fbconfig'].forEach(k=>localStorage.removeItem(k));tracks=[];covers=[];nfts=[];channels=[];renderAll();renderTbls();toast('🗑 All data cleared');}
+
+// ===== ADMIN AUTH (Firebase) =====
+function openLogin(){
+  const modal=document.getElementById('lm');
+  modal.classList.add('on');
+  // If already authenticated via Firebase, open admin directly
+  if(window._fbAuthenticated&&window.fbUser){
+    closeLogin();
+    openAP();
+    return;
+  }
+  // Wait for Firebase then focus
+  setTimeout(()=>{
+    const em=document.getElementById('ap-email');
+    if(em)em.focus();
+    // Show Firebase status
+    const err=document.getElementById('ap-err');
+    if(err&&!window._fbReady){
+      err.textContent='⏳ Connecting to Firebase...';
+      err.style.display='block';
+      err.style.color='rgba(0,245,255,.6)';
+      // Retry when ready
+      const wait=setInterval(()=>{
+        if(window._fbReady){
+          clearInterval(wait);
+          err.style.display='none';
+        }
+      },500);
+    }
+  },200);
+}
+function closeLogin(){
+  document.getElementById('lm').classList.remove('on');
+  const err=document.getElementById('ap-err');
+  if(err){err.textContent='';err.style.display='none';}
+}
+
+async function resetPassword(){
+  const emailEl=document.getElementById('ap-email');
+  const errEl=document.getElementById('ap-err');
+  const email=(emailEl?emailEl.value:'').trim();
+
+  if(!email){
+    if(errEl){
+      errEl.textContent='📧 Please enter your email first';
+      errEl.style.display='block';
+      errEl.style.color='rgba(0,245,255,.7)';
+    }
+    if(emailEl)emailEl.focus();
+    return;
+  }
+
+  if(!window.fbAuth||!window.fbFns||!window.fbFns.sendPasswordResetEmail){
+    if(errEl){
+      errEl.textContent='⏳ Firebase not ready — please wait';
+      errEl.style.display='block';
+    }
+    return;
+  }
+
+  try{
+    await window.fbFns.sendPasswordResetEmail(window.fbAuth, email);
+    if(errEl){
+      errEl.style.display='block';
+      errEl.style.color='#00c850';
+      errEl.textContent='✅ Reset email sent to '+email+' — check your inbox!';
+    }
+    console.log('Password reset email sent to:', email);
+  } catch(e){
+    let msg='❌ ';
+    if(e.code==='auth/user-not-found')msg+='No account found with this email';
+    else if(e.code==='auth/invalid-email')msg+='Invalid email format';
+    else if(e.code==='auth/too-many-requests')msg+='Too many attempts — try later';
+    else msg+=e.message||e.code;
+    if(errEl){
+      errEl.textContent=msg;
+      errEl.style.display='block';
+      errEl.style.color='var(--m)';
+    }
+  }
+}
+
+async function chkPw(){
+  const emailEl=document.getElementById('ap-email');
+  const pwEl=document.getElementById('ap-pw');
+  const errEl=document.getElementById('ap-err');
+  const btnEl=document.getElementById('login-submit-btn');
+  const email=(emailEl?emailEl.value:'').trim();
+  const pw=pwEl?pwEl.value:'';
+  if(!email||!pw){
+    if(errEl){errEl.textContent='❌ Please enter email and password';errEl.style.display='block';}
+    return;
+  }
+  if(btnEl){btnEl.textContent='🔄 Logging in...';btnEl.disabled=true;}
+  try{
+    // ALWAYS use Firebase Auth — no local password fallback
+    if(window.fbAuth&&window.fbFns&&window.fbFns.signInWithEmailAndPassword){
+      await window.fbFns.signInWithEmailAndPassword(window.fbAuth, email, pw);
+      if(pwEl)pwEl.value='';
+      closeLogin();
+      openAP();
+      toast('🔐 Secure login successful!','ok2');
+    } else {
+      // Firebase not loaded yet — show error, don't fallback
+      throw {code:'auth/firebase-not-ready', message:'Firebase not loaded yet — please wait and try again'};
+    }
+  } catch(e){
+    let msg='❌ '+( 
+      e.code==='auth/user-not-found'?'Email not found':
+      e.code==='auth/wrong-password'?'Wrong password':
+      e.code==='auth/invalid-email'?'Invalid email':
+      e.code==='auth/too-many-requests'?'Too many attempts':
+      e.code==='auth/invalid-credential'?'Invalid credentials — check email/password':
+      e.code==='auth/network-request-failed'?'Network error — check internet':
+      e.code==='auth/operation-not-allowed'?'Email login not enabled in Firebase':
+      e.code==='auth/firebase-not-ready'?'Firebase loading — wait 5 seconds and try again':
+      e.code?('['+e.code+']'):e.message
+    );
+    if(errEl){errEl.textContent=msg;errEl.style.display='block';}
+    if(pwEl)pwEl.value='';
+    console.error('Auth error:',e.code,e.message);
+  }
+  if(btnEl){btnEl.textContent='🔐 Secure Login';btnEl.disabled=false;}
+}
+
+async function logoutOwner(){
+  try{
+    if(window.fbAuth&&window.fbFns.signOut){
+      await window.fbFns.signOut(window.fbAuth);
+    }
+    window._fbAuthenticated=false;
+    window.fbUser=null;
+  }catch(e){}
+  closeAP();
+  toast('👋 Logged out','ok2');
+}
+
+// ══════════════════════════════════════════════════════
+// 🌍 VISITOR ANALYTICS SYSTEM
+// ══════════════════════════════════════════════════════
+const VISIT_KEY = 'am_visit_log';
+const VISIT_SESSION = 'am_visit_session';
+
+async function trackVisitor(){
+  // Only track once per session
+  if(sessionStorage.getItem(VISIT_SESSION)) return;
+  sessionStorage.setItem(VISIT_SESSION,'1');
+  try{
+    const res = await fetch('https://ipapi.co/json/');
+    const d = await res.json();
+    const entry = {
+      ts: Date.now(),
+      date: new Date().toISOString().slice(0,10),
+      country: d.country_name || 'Unknown',
+      country_code: (d.country_code||'??').toLowerCase(),
+      city: d.city || '',
+      flag: getFlagEmoji(d.country_code || '??')
+    };
+    // Save to localStorage
+    const log = getVisitLog();
+    log.push(entry);
+    // Keep last 10000 entries max
+    if(log.length > 10000) log.splice(0, log.length - 10000);
+    localStorage.setItem(VISIT_KEY, JSON.stringify(log));
+    // Also save to Firebase if connected
+    if(fbReady && window.fbDB && window.fbFns){
+      try{
+        const {collection, addDoc} = window.fbFns;
+        await addDoc(collection(window.fbDB,'visitor_log'), entry);
+      }catch(e){}
+    }
+  }catch(e){
+    // Fallback: track without geo data
+    const log = getVisitLog();
+    log.push({ts:Date.now(), date:new Date().toISOString().slice(0,10), country:'Unknown', country_code:'??', city:'', flag:'🌐'});
+    localStorage.setItem(VISIT_KEY, JSON.stringify(log));
+  }
+}
+
+function getFlagEmoji(cc){
+  if(!cc || cc==='??' || cc.length!==2) return '🌐';
+  const c = cc.toUpperCase();
+  return String.fromCodePoint(...[...c].map(ch=>0x1F1E0 - 65 + ch.charCodeAt(0)));
+}
+
+function getVisitLog(){
+  try{ return JSON.parse(localStorage.getItem(VISIT_KEY)||'[]'); }catch(e){ return []; }
+}
+
+async function loadVisitLogFromFirebase(){
+  if(!fbReady || !window.fbDB || !window.fbFns) return getVisitLog();
+  try{
+    const {collection, getDocs, query, orderBy} = window.fbFns;
+    const snap = await getDocs(query(collection(window.fbDB,'visitor_log'), orderBy('ts','asc')));
+    const fbLog = snap.docs.map(d=>d.data());
+    // Merge with local
+    const local = getVisitLog();
+    const all = [...fbLog, ...local];
+    // Deduplicate by ts+country
+    const seen = new Set();
+    return all.filter(e=>{ const k=e.ts+'_'+e.country; if(seen.has(k)) return false; seen.add(k); return true; })
+              .sort((a,b)=>a.ts-b.ts);
+  }catch(e){ return getVisitLog(); }
+}
+
+async function renderVisitors(){
+  const days = parseInt(document.getElementById('vis-range')?.value||'30');
+  const allLog = await loadVisitLogFromFirebase();
+  const now = Date.now();
+  const cutoff = days===0 ? 0 : now - days*86400000;
+  const log = allLog.filter(e=> e.ts >= cutoff);
+
+  const empty = document.getElementById('vis-empty');
+  const statsRow = document.getElementById('vis-stats-row');
+  const countriesEl = document.getElementById('vis-countries');
+  const chartEl = document.getElementById('vis-chart');
+  if(!statsRow||!countriesEl||!chartEl) return;
+
+  if(log.length===0){
+    if(empty) empty.style.display='block';
+    statsRow.innerHTML=''; countriesEl.innerHTML=''; chartEl.innerHTML='';
+    return;
+  }
+  if(empty) empty.style.display='none';
+
+  // ── Stats row ──────────────────────────────────────
+  const totalVisits = log.length;
+  const countrySet = new Set(log.map(e=>e.country));
+  const totalCountries = countrySet.size;
+  // Today count
+  const todayStr = new Date().toISOString().slice(0,10);
+  const todayCount = log.filter(e=>e.date===todayStr).length;
+  // Most popular country
+  const cMap = {};
+  log.forEach(e=>{ cMap[e.country]=(cMap[e.country]||0)+1; });
+  const topCountry = Object.entries(cMap).sort((a,b)=>b[1]-a[1])[0];
+
+  statsRow.innerHTML = `
+    ${statCard('👁', totalVisits, 'Total Visits')}
+    ${statCard('🌍', totalCountries, 'Countries')}
+    ${statCard('📅', todayCount, 'Today')}
+    ${statCard(topCountry?log.find(e=>e.country===topCountry[0])?.flag||'🏆':'🏆', topCountry?topCountry[1]:0, topCountry?topCountry[0]:'—')}
+  `;
+
+  // ── Daily chart (last 14 days) ─────────────────────
+  const chartDays = Math.min(days===0?30:days, 30);
+  const dailyMap = {};
+  for(let i=chartDays-1;i>=0;i--){
+    const d=new Date(now - i*86400000).toISOString().slice(0,10);
+    dailyMap[d]=0;
+  }
+  log.forEach(e=>{ if(dailyMap[e.date]!==undefined) dailyMap[e.date]++; });
+  const dailyVals = Object.values(dailyMap);
+  const maxVal = Math.max(...dailyVals, 1);
+  const dailyKeys = Object.keys(dailyMap);
+  chartEl.innerHTML = dailyKeys.map((date,i)=>{
+    const v = dailyMap[date];
+    const h = Math.max(4, Math.round((v/maxVal)*80));
+    const isToday = date===todayStr;
+    const label = date.slice(5);
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:18px;max-width:36px;" title="${date}: ${v} visits">
+      <span style="font-size:8px;color:rgba(224,238,255,.3);font-family:Orbitron,monospace;">${v||''}</span>
+      <div style="width:100%;height:${h}px;background:${isToday?'var(--c)':'rgba(0,245,255,.35)'};border-radius:3px 3px 0 0;transition:all .3s;cursor:default;"></div>
+      <span style="font-size:7px;color:${isToday?'var(--c)':'rgba(224,238,255,.2)'};font-family:monospace;white-space:nowrap;">${label}</span>
+    </div>`;
+  }).join('');
+
+  // ── Countries table ────────────────────────────────
+  const sorted = Object.entries(cMap).sort((a,b)=>b[1]-a[1]);
+  const maxC = sorted[0]?.[1]||1;
+  countriesEl.innerHTML = sorted.map(([country, cnt], idx)=>{
+    const entry = log.find(e=>e.country===country);
+    const flag = entry?.flag || '🌐';
+    const pct = Math.round((cnt/totalVisits)*100);
+    const bar = Math.round((cnt/maxC)*100);
+    return `<div style="background:rgba(0,245,255,.03);border:1px solid rgba(0,245,255,.08);border-radius:8px;padding:10px 14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="font-size:20px;line-height:1;">${flag}</span>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:13px;color:#e0eeff;font-weight:600;">${country}</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-family:Orbitron,monospace;font-size:11px;color:var(--c);">${cnt.toLocaleString()}</span>
+              <span style="font-size:10px;color:rgba(224,238,255,.3);font-family:monospace;">${pct}%</span>
+              ${idx===0?'<span style="font-size:9px;background:rgba(255,200,0,.15);border:1px solid rgba(255,200,0,.3);color:#ffc800;padding:1px 6px;border-radius:4px;font-family:Orbitron,monospace;">TOP</span>':''}
+            </div>
+          </div>
+          <div style="height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:${bar}%;background:linear-gradient(90deg,var(--c),var(--m));border-radius:2px;transition:width .6s;"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function statCard(icon, val, label){
+  return `<div style="background:rgba(0,245,255,.05);border:1px solid rgba(0,245,255,.15);border-radius:10px;padding:14px;text-align:center;">
+    <div style="font-size:22px;margin-bottom:4px;">${icon}</div>
+    <div style="font-family:Orbitron,monospace;font-size:20px;color:var(--c);font-weight:700;">${typeof val==='number'?val.toLocaleString():val}</div>
+    <div style="font-size:10px;color:rgba(224,238,255,.35);margin-top:3px;letter-spacing:1px;">${label.toUpperCase()}</div>
+  </div>`;
+}
+
+function clearVisitorData(){
+  if(!confirm('Clear all visitor data?')) return;
+  localStorage.removeItem(VISIT_KEY);
+  renderVisitors();
+  toast('🗑 Visitor data cleared','ok2');
+}
+
+// Track visit on page load
+trackVisitor();
+
+function openAP(){
+  document.getElementById('ap').classList.add('on');
+  document.body.style.overflow='hidden';
+  renderTbls();
+  if(settings.email)document.getElementById('st-e').value=settings.email;
+  if(settings.name)document.getElementById('st-n').value=settings.name;
+  const saved=localStorage.getItem('am_fbconfig');
+  if(saved)try{document.getElementById('fb-cfg').value=JSON.stringify(JSON.parse(saved),null,2);}catch(e){}
+  // Show auth status in settings
+  const si=document.getElementById('fb-status-info');
+  if(si&&window.fbUser)si.textContent='Status: ✅ Authenticated — '+window.fbUser.email;
+}
+function closeAP(){document.getElementById('ap').classList.remove('on');document.body.style.overflow='';}
+function swTab(n){document.querySelectorAll('.ap-tab').forEach((t,i)=>{const tabs=['music','covers','nft','videos','channels','visitors','settings'];t.classList.toggle('act',tabs[i]===n);});document.querySelectorAll('.ap-pane').forEach(p=>p.classList.remove('act'));document.getElementById('tab-'+n).classList.add('act');if(n==='visitors') renderVisitors();}
+
+// ===== TOAST =====
+function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ===== CURSOR =====
+const cur=document.getElementById('cur'),cdot=document.getElementById('cdot');
+let mx=0,my=0,cx=0,cy=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cdot.style.left=(mx-2)+'px';cdot.style.top=(my-2)+'px';});
+setInterval(()=>{cx+=(mx-cx)*.15;cy+=(my-cy)*.15;cur.style.left=(cx-9)+'px';cur.style.top=(cy-9)+'px';},16);
+
+// ===== PARTICLES =====
+const pc=document.getElementById('ptcl');
+for(let i=0;i<40;i++){const p=document.createElement('div');p.className='ptcl';const s=Math.random()*3+1;p.style.cssText=`width:${s}px;height:${s}px;background:${'#00f5ff #ff00aa #ff6a00 #fff'.split(' ')[Math.floor(Math.random()*4)]};left:${Math.random()*100}%;animation-duration:${Math.random()*15+10}s;animation-delay:${Math.random()*12}s;box-shadow:0 0 ${s*3}px currentColor;`;pc.appendChild(p);}
+
+// ===== SCROLL =====
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('v');}),{threshold:.1}).observe.bind(new IntersectionObserver(()=>{}))||null;
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('v');}),{threshold:.1});
+document.querySelectorAll('.fi').forEach(el=>obs.observe(el));
+
+// ===== CONTACT =====
+function sendMsg(){const n=document.getElementById('cn').value.trim(),e=document.getElementById('ce').value.trim(),m=document.getElementById('cm').value.trim();if(!n||!e||!m){toast('Fill all fields','err');return;}window.open(`mailto:${settings.email||'awesomemusic@email.com'}?subject=Message from ${encodeURIComponent(n)}&body=${encodeURIComponent('From: '+n+'\nEmail: '+e+'\n\n'+m)}`);['cn','ce','cm'].forEach(i=>document.getElementById(i).value='');toast('✅ Message sent!','ok2');}
+
+document.getElementById('lm').addEventListener('click',function(e){if(e.target===this)closeLogin();});
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEM();});
+
+// ===== MUSIC SEARCH =====
+let searchTimeout=null;
+function showSearchOverlay(){
+  const resultsBox=document.getElementById('search-results');
+  const bg=document.getElementById('search-overlay-bg');
+  if(resultsBox)resultsBox.style.display='block';
+  if(bg)bg.style.display='block';
+}
+function hideSearchOverlay(){
+  const resultsBox=document.getElementById('search-results');
+  const bg=document.getElementById('search-overlay-bg');
+  if(resultsBox)resultsBox.style.display='none';
+  if(bg)bg.style.display='none';
+}
+function searchMusic(query){
+  const q=query.trim().toLowerCase();
+  const clearBtn=document.getElementById('search-clear');
+  const resultsInner=document.getElementById('search-results-inner');
+  const label=document.getElementById('search-label');
+  if(clearBtn)clearBtn.style.display=q?'flex':'none';
+  if(!q){hideSearchOverlay();return;}
+  clearTimeout(searchTimeout);
+  searchTimeout=setTimeout(()=>{
+    if(!tracks.length){
+      resultsInner.innerHTML='<div class="sr-empty"><div>🎵</div>No tracks added yet</div>';
+      if(label)label.textContent='NO TRACKS YET';
+      showSearchOverlay();return;
+    }
+    const results=tracks.filter(t=>
+      t.title.toLowerCase().includes(q)||
+      (t.artist&&t.artist.toLowerCase().includes(q))
+    );
+    if(!results.length){
+      resultsInner.innerHTML=`<div class="sr-empty"><div>🔍</div>No results for "<strong style="color:#fff">${query}</strong>"</div>`;
+      if(label)label.textContent='NO RESULTS';
+      showSearchOverlay();return;
+    }
+    // Group by type
+    const ytR=results.filter(t=>isYT(t));
+    const scR=results.filter(t=>isSC(t));
+    const mpR=results.filter(t=>isMP3(t));
+    let html='';
+    if(ytR.length){
+      html+=`<div class="sr-header">▶ YOUTUBE (${ytR.length})</div>`;
+      html+=ytR.map(t=>buildSRItem(t)).join('');
+    }
+    if(scR.length){
+      html+=`<div class="sr-header">☁ SOUNDCLOUD (${scR.length})</div>`;
+      html+=scR.map(t=>buildSRItem(t)).join('');
+    }
+    if(mpR.length){
+      html+=`<div class="sr-header">🎵 MP3 (${mpR.length})</div>`;
+      html+=mpR.map(t=>buildSRItem(t)).join('');
+    }
+    if(label)label.textContent=`RESULTS (${results.length})`;
+    resultsInner.innerHTML=html;
+    showSearchOverlay();
+  },200);
+}
+
+function buildSRItem(t){
+  const i=tracks.indexOf(t);
+  const trackId=t.id||t.src;
+  const likeCount=t.likes||getLikes(trackId)||0;
+  const type=isYT(t)?'yt':isSC(t)?'sc':'mp3';
+  const typeLabel=isYT(t)?'YouTube':isSC(t)?'SoundCloud':'MP3';
+  const coverHtml=isMP3(t)&&t.cover
+    ?`<img class="sr-cover" src="${t.cover}"/>`
+    :`<div class="sr-icon" style="background:${isYT(t)?'rgba(255,0,0,.15)':isSC(t)?'rgba(255,85,0,.15)':'rgba(0,245,255,.1)'}">${isYT(t)?'▶':isSC(t)?'☁':'🎵'}</div>`;
+  return `<div class="sr-item" onclick="playFromSearch(${i})">
+    ${coverHtml}
+    <div class="sr-info">
+      <div class="sr-title">${t.title}</div>
+      <div class="sr-sub">
+        <span class="sr-badge ${type}">${typeLabel}</span>
+        ${t.artist?`<span>${t.artist}</span>`:''}
+        ${likeCount>0?`<span style="color:rgba(255,50,100,.6)">♥ ${likeCount}</span>`:''}
+      </div>
+    </div>
+    <span style="font-size:18px;color:rgba(0,245,255,.4);">▶</span>
+  </div>`;
+}
+
+function playFromSearch(i){
+  clearSearch();
+  playT(i);
+  // Smooth scroll to player section
+  const sec=document.getElementById('music');
+  if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function clearSearch(){
+  const inp=document.getElementById('music-search');
+  const clearBtn=document.getElementById('search-clear');
+  if(inp)inp.value='';
+  if(clearBtn)clearBtn.style.display='none';
+  hideSearchOverlay();
+}
+
+// Close search on Escape key
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')clearSearch();
+});
+
+// ===== INIT =====
+window.addEventListener('load',()=>{
+  document.getElementById('hbg').src=IMGS.h1;
+  selectSrc('yt'); // Default to YouTube source in admin
+  selectNFTSrc('github'); // Default to GitHub Releases for NFT images
+  switchPL('yt');  // Default to YouTube playlist tab for visitors
+  document.getElementById('hav').src=IMGS.h1;
+  document.getElementById('npc').src=IMGS.h1;
+  lang=localStorage.getItem('am_lang')||'en';
+  applyLang();
+  if(settings.email){const a=document.getElementById('ct-email');if(a){a.href='mailto:'+settings.email;a.textContent='✉ '+settings.email;}}
+});
+</script>
+</body>
+</html>
